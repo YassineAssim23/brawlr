@@ -7,7 +7,7 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "AI Boxing Judge",
+  title: "brawlr - AI Boxing Judge",
   description: "AI-powered boxing match scoring and analysis",
   generator: "v0.app",
 }

@@ -11,7 +11,7 @@ export function Header() {
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">AI</span>
               </div>
-              <h1 className="text-xl font-bold text-foreground">BOXING JUDGE</h1>
+              <h1 className="text-xl font-bold text-foreground">brawlr</h1>
             </div>
           </div>
 
