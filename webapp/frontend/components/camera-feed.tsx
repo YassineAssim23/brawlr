@@ -1,12 +1,48 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Camera, CameraOff, Settings } from "lucide-react"
 
 export function CameraFeed() {
   const [isActive, setIsActive] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  type CameraStatus = 'Permission Needed' | 'Camera On' | 'Camera Off'
+  const [status, setStatus] = useState<CameraStatus>('Permission Needed')
+
+  // Turns on the camera
+  async function startCapture(){
+    try{
+      setStatus('Permission Needed')
+      const stream = await navigator.mediaDevices.getUserMedia({video: true})
+
+      if (videoRef.current){
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+
+      setStatus('Camera On')
+      setIsActive(true)
+    }
+    catch(error){
+      setStatus('Camera Off')
+      console.log("Camera Permission Denied")
+    }
+  }
+
+  // Stop the Camera
+  async function stopCapture(){
+    if (videoRef.current){
+      const stream = videoRef.current.srcObject as MediaStream
+      stream?.getTracks().forEach(track=> track.stop())
+      videoRef.current.srcObject = null
+    }
+    
+    setStatus('Camera Off')
+    setIsActive(false)
+  }
+
 
   return (
     <Card className="p-6 bg-card border-border h-full flex flex-col">
@@ -20,19 +56,13 @@ export function CameraFeed() {
 
       <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-6 relative overflow-hidden flex-1">
         {isActive ? (
-          <div className="w-full h-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <Camera className="h-10 w-10 text-primary" />
-              </div>
-              <p className="text-lg text-muted-foreground font-medium">Camera Active - AI Analyzing Fight</p>
-              <div className="flex items-center justify-center gap-1 mt-3">
-                <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
-                <div className="w-3 h-3 bg-primary rounded-full animate-pulse delay-100"></div>
-                <div className="w-3 h-3 bg-primary rounded-full animate-pulse delay-200"></div>
-              </div>
-            </div>
-          </div>
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover rounded-lg"
+            playsInline
+            muted
+            autoPlay
+          />
         ) : (
           <div className="text-center">
             <CameraOff className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
@@ -44,13 +74,13 @@ export function CameraFeed() {
 
       <div className="flex gap-3">
         <Button
-          onClick={() => setIsActive(!isActive)}
+          onClick={isActive ? stopCapture : startCapture}
           className={isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
           size="lg"
         >
           {isActive ? "Stop Recording" : "Start Recording"}
         </Button>
-        <Button variant="outline" size="lg">
+        <Button variant="outline" size="lg">  
           Calibrate Camera
         </Button>
       </div>
