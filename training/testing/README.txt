@@ -9,7 +9,8 @@ pip install ultralytics opencv-python torch torchvision torchaudio --index-url h
 
 3. Run a quick test. 
 
-python run_infer.py "C:\path\to\image_or_video.mp4"
+cd "brawlr"
+python training\testing\run_infer.py "C:\path\to\video.mp4"
 
 Output appears - 
 
