@@ -1,0 +1,8 @@
+# Include root requirements
+-r ../requirements.txt
+
+# Training specific
+jupyter>=1.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+tensorboard>=2.13.0

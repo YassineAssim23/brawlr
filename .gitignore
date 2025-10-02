@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# AI Models (large files)
+*.pt
+*.pth
+*.pkl
+
+# Data files
+data/
+videos/
+sessions/
+*.mp4
+*.avi
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Android/Kotlin
+*.apk
+*.aab
+*.dex
+*.class
+build/
+.gradle/
+local.properties
+*.iml
+
+# React/Electron
+build/
+dist/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
