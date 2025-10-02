@@ -23,9 +23,27 @@ export function CameraFeed() {
   const startVideoCapture = async () => {
     try {
       console.log("Starting camera...");
-      const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const newStream = await navigator.mediaDevices.getUserMedia({ 
+        video: {
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          frameRate: { ideal: 30, min: 24 },
+          facingMode: "user"
+        }
+      });
       console.log("Stream created:", newStream);
       console.log("Tracks:", newStream.getTracks());
+      
+      // Log the actual video track settings
+      const videoTrack = newStream.getVideoTracks()[0];
+      if (videoTrack) {
+        const settings = videoTrack.getSettings();
+        console.log("Video settings:", {
+          width: settings.width,
+          height: settings.height,
+          frameRate: settings.frameRate
+        });
+      }
       
       // Save the stream in state so React can attach it when video element renders
       setStream(newStream);
@@ -64,10 +82,14 @@ export function CameraFeed() {
         {streamActive ? (
           <video
             ref={videoRef}
-            className="w-full h-full object-cover rounded-lg"
+            className="w-full h-full object-cover rounded-lg shadow-lg"
             autoPlay
             playsInline
             muted
+            style={{
+              filter: 'contrast(1.1) brightness(1.05) saturate(1.1)',
+              imageRendering: 'crisp-edges'
+            }}
             onLoadStart={() => console.log("Video onLoadStart")}
             onLoadedData={() => console.log("Video onLoadedData")}
             onCanPlay={() => console.log("Video onCanPlay")}
