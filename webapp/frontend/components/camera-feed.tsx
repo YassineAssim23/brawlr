@@ -1,48 +1,54 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Camera, CameraOff, Settings } from "lucide-react"
 
 export function CameraFeed() {
-  const [isActive, setIsActive] = useState(false)
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  type CameraStatus = 'Permission Needed' | 'Camera On' | 'Camera Off'
-  const [status, setStatus] = useState<CameraStatus>('Permission Needed')
+  const[videoLive,useVideoLive]=useState(false)
+  const[streamActive,setStreamActive]=useState(false)
+  const videoRef=useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  // Turns on the camera
-  async function startCapture(){
-    try{
-      setStatus('Permission Needed')
-      const stream = await navigator.mediaDevices.getUserMedia({video: true})
-
-      if (videoRef.current){
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
-
-      setStatus('Camera On')
-      setIsActive(true)
+  // Use useEffect to attach stream when video element is ready
+  useEffect(() => {
+    if (streamActive && stream && videoRef.current) {
+      console.log("Attaching stream to video element");
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(console.error);
     }
-    catch(error){
-      setStatus('Camera Off')
-      console.log("Camera Permission Denied")
-    }
-  }
+  }, [streamActive, stream]);
 
-  // Stop the Camera
-  async function stopCapture(){
-    if (videoRef.current){
-      const stream = videoRef.current.srcObject as MediaStream
-      stream?.getTracks().forEach(track=> track.stop())
-      videoRef.current.srcObject = null
+  const startVideoCapture = async () => {
+    try {
+      console.log("Starting camera...");
+      const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log("Stream created:", newStream);
+      console.log("Tracks:", newStream.getTracks());
+      
+      // Save the stream in state so React can attach it when video element renders
+      setStream(newStream);
+      setStreamActive(true);
+      useVideoLive(true);
+    } catch (error) {
+      console.error("Camera error:", error);
+    }
+  };
+
+  const stopVideoCapture = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
     }
     
-    setStatus('Camera Off')
-    setIsActive(false)
-  }
-
+    if (videoRef.current){
+      videoRef.current.srcObject = null;
+    }
+    
+    setStream(null);
+    setStreamActive(false);
+    useVideoLive(false);
+  };
 
   return (
     <Card className="p-6 bg-card border-border h-full flex flex-col">
@@ -55,13 +61,18 @@ export function CameraFeed() {
       </div>
 
       <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-6 relative overflow-hidden flex-1">
-        {isActive ? (
+        {streamActive ? (
           <video
             ref={videoRef}
             className="w-full h-full object-cover rounded-lg"
+            autoPlay
             playsInline
             muted
-            autoPlay
+            onLoadStart={() => console.log("Video onLoadStart")}
+            onLoadedData={() => console.log("Video onLoadedData")}
+            onCanPlay={() => console.log("Video onCanPlay")}
+            onPlaying={() => console.log("Video onPlaying")}
+            onError={(e) => console.error("Video error:", e)}
           />
         ) : (
           <div className="text-center">
@@ -74,16 +85,14 @@ export function CameraFeed() {
 
       <div className="flex gap-3">
         <Button
-          onClick={isActive ? stopCapture : startCapture}
-          className={isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
+          onClick={streamActive ? stopVideoCapture : startVideoCapture}
+          className={streamActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
           size="lg"
-        >
-          {isActive ? "Stop Recording" : "Start Recording"}
-        </Button>
+        >{streamActive ? "Stop Recording" : "Start Recording"}</Button>
         <Button variant="outline" size="lg">  
           Calibrate Camera
         </Button>
       </div>
     </Card>
-  )
+  );
 }
