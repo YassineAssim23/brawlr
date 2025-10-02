@@ -13,7 +13,8 @@ def main():
 
     # Resolve repo root from this file's location
     repo_root = Path(__file__).resolve().parents[2]
-    model_path = repo_root / "desktop" / "backend" / "models" / "best.pt"
+    # Adjusted to current repo layout: model is under webapp/backend/models/best.pt
+    model_path = repo_root / "webapp" / "backend" / "models" / "best.pt"
 
     if not model_path.exists():
         print(f"Model not found: {model_path}")

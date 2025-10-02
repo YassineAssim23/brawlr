@@ -1,6 +1,22 @@
-file = open('inference_log.txt', 'r', encoding='utf-16')
-lines = file.readlines()
-file.close()
+import sys
+from pathlib import Path
+
+# Determine log path (default to inference_log.txt in CWD, or first CLI arg)
+log_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('inference_log.txt')
+
+def read_lines_with_fallbacks(path: Path):
+    encodings_to_try = ['utf-16', 'utf-8-sig', 'utf-8', 'latin-1']
+    for enc in encodings_to_try:
+        try:
+            with open(path, 'r', encoding=enc, errors='strict') as f:
+                return f.readlines()
+        except Exception:
+            continue
+    # Last resort: permissive read
+    with open(path, 'r', encoding='utf-8', errors='replace') as f:
+        return f.readlines()
+
+lines = read_lines_with_fallbacks(log_path)
 
 # Initialize each punch type count to 0
 jab_count = 0
@@ -11,7 +27,7 @@ uppercut_count = 0
 current_cluster_punches = [] # Store punch types in current cluster
 in_cluster = False # Tells us if we are currently in a cluster
 
-print("Analyzing the log file...")
+print(f"Analyzing the log file: {log_path}")
 
 # Loop through each line in the log file to find clusters of punches
 for line in lines:
@@ -91,10 +107,10 @@ print(f"Hook: {hook_count}")
 print(f"Uppercut: {uppercut_count}")
 print(f"Total punches: {jab_count + cross_count + hook_count + uppercut_count}")
 print("==================================================")
-
 # Correct results from BagVideo0
 print("\nExpected results:")
 print("Jab: 15")
 print("Cross: 15")
 print("Hook: 30")
 print("Uppercut: 15")
+

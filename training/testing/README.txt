@@ -1,38 +1,32 @@
-1. Create and activate venv. 
+1) Create and activate venv (from repo root)
 
-python -m venv .venv
-.\.venv\Scripts\activate
+PowerShell
+    py -3 -m venv .venv
+    .\.venv\Scripts\Activate.ps1
 
-2. Install dependencies - CPU ONLY. 
+CMD
+    py -3 -m venv .venv
+    .venv\Scripts\activate.bat
 
-pip install ultralytics opencv-python torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+2) Install requirements
+    python -m pip install --upgrade pip
+    python -m pip install -r requirements.txt -r training\requirements.txt
 
-3. Run a quick test. 
+3) Run inference (repo root)
 
-cd "brawlr"
-python training\testing\run_infer.py "C:\path\to\video.mp4"
+PowerShell
+    python training\testing\run_infer.py training\videos\BagVideo0.MOV cpu *>&1 | Tee-Object -FilePath training\inference_log.txt
 
-Output appears - 
+CMD
+    python training\testing\run_infer.py training\videos\BagVideo0.MOV cpu > training\inference_log.txt 2>&1
 
-runs\detect\predict\
+4) Run punch counter (repo root)
+    .\.venv\Scripts\python.exe training\testing\count_punches_v5.py training\inference_log.txt
 
+Optional thresholds
+    .\.venv\Scripts\python.exe training\testing\count_punches_v5.py training\inference_log.txt --min-cluster 10 --majority 8 --min-gap-lines 10
 
-4. Run inference and punch counting together
-
-PowerShell (recommended):
-
-Two-step (clearer)
-    python training\testing\run_infer.py "C:\path\to\video.mp4" cpu | Tee-Object -FilePath training\inference_log.txt
-    python training\count_punches_v5.py training\inference_log.txt
-
-One-liner
-    python training\testing\run_infer.py "C:\path\to\video.mp4" cpu | Tee-Object -FilePath training\inference_log.txt; python training\count_punches_v5.py training\inference_log.txt
-
-Command Prompt (cmd.exe):
-    python training\testing\run_infer.py "C:\path\to\video.mp4" cpu > training\inference_log.txt && python training\count_punches_v5.py training\inference_log.txt
-
-Notes:
-- The counter reads a log file, not stdin. Ensure you pass the log path.
-- PowerShell Tee-Object writes UTF-16 by default, matching the counter's encoding.
-- Outputs (frames, AVI) are written under runs\\detect\\predict (kept out of git).
+Outputs
+- Annotated predictions in runs\detect\predict*
+- Log at training\inference_log.txt
 
