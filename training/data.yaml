@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 6
+names: ['bag', 'cross', 'hook', 'jab', 'no punch', 'uppercut']
+
+roboflow:
+  workspace: brawlr
+  project: my-first-project-h1iba
+  version: 4
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/brawlr/my-first-project-h1iba/dataset/4
