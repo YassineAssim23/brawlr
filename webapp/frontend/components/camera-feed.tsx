@@ -1,72 +1,125 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Camera, CameraOff, Settings } from "lucide-react"
 
 export function CameraFeed() {
-  const[videoLive,useVideoLive]=useState(false)
-  const[streamActive,setStreamActive]=useState(false)
-  const videoRef=useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  // state variables
+  const [isActive, setIsActive] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  type CameraStatus = 'Permission Needed' | 'Camera On' | 'Camera Off'
+  const [status, setStatus] = useState<CameraStatus>('Permission Needed')
 
-  // Use useEffect to attach stream when video element is ready
-  useEffect(() => {
-    if (streamActive && stream && videoRef.current) {
-      console.log("Attaching stream to video element");
-      videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(console.error);
-    }
-  }, [streamActive, stream]);
+  // WebSocket and frame capture state
+  const wsRef = useRef<WebSocket | null>(null)  // Holds WebSocket connection
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)  // Holds timer ID
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)  // Hidden canvas for frame capture
+  const [isConnected, setIsConnected] = useState(false)  // Backend connection status
 
-  const startVideoCapture = async () => {
-    try {
-      console.log("Starting camera...");
-      const newStream = await navigator.mediaDevices.getUserMedia({ 
-        video: {
-          width: { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-          frameRate: { ideal: 30, min: 24 },
-          facingMode: "user"
-        }
-      });
-      console.log("Stream created:", newStream);
-      console.log("Tracks:", newStream.getTracks());
-      
-      // Log the actual video track settings
-      const videoTrack = newStream.getVideoTracks()[0];
-      if (videoTrack) {
-        const settings = videoTrack.getSettings();
-        console.log("Video settings:", {
-          width: settings.width,
-          height: settings.height,
-          frameRate: settings.frameRate
-        });
+  // Existing startCapture function
+  async function startCapture(){
+    try{
+      setStatus('Permission Needed')
+      const stream = await navigator.mediaDevices.getUserMedia({video: true})
+
+      if (videoRef.current){
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
       }
-      
-      // Save the stream in state so React can attach it when video element renders
-      setStream(newStream);
-      setStreamActive(true);
-      useVideoLive(true);
-    } catch (error) {
-      console.error("Camera error:", error);
-    }
-  };
 
-  const stopVideoCapture = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      setStatus('Camera On')
+      setIsActive(true)
+
+      // NEW: Connect to backend WebSocket
+      wsRef.current = new WebSocket('ws://localhost:8000/ws')
+
+      // When WebSocket connection opens
+      wsRef.current.onopen = () => {
+        setIsConnected(true)
+        // Start sending frames every 100ms (10 times per second)
+        intervalRef.current = setInterval(captureFrame, 100)
+      }
+
+      // When we receive a message from backend
+      wsRef.current.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        if (data.type === 'punch') {
+          console.log('Punch detected:', data.punchType)
+          // TODO: Update punch counters
+        }
+      }
+
+      // When WebSocket connection closes
+      wsRef.current.onclose = () => {
+        setIsConnected(false)
+      }
+
     }
-    
+    catch(error){
+      setStatus('Camera Off')
+      console.log("Camera Permission Denied")
+    }
+  }
+
+  // Existing stopCapture function
+  async function stopCapture(){
     if (videoRef.current){
-      videoRef.current.srcObject = null;
+      const stream = videoRef.current.srcObject as MediaStream
+      stream?.getTracks().forEach(track=> track.stop())
+      videoRef.current.srcObject = null
     }
     
-    setStream(null);
-    setStreamActive(false);
-    useVideoLive(false);
-  };
+    setStatus('Camera Off')
+    setIsActive(false)
+
+    // NEW: Stop sending frames and close WebSocket
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+  }
+
+  // NEW: Function to capture a frame from video and send to backend
+  function captureFrame() {
+    // Check if we have video, canvas, and WebSocket connection
+    if (videoRef.current && canvasRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
+      const canvas = canvasRef.current
+      const video = videoRef.current
+      
+      // Set canvas size to match video size
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      
+      // Draw the current video frame onto the canvas (like taking a screenshot)
+      const ctx = canvas.getContext('2d')
+      ctx?.drawImage(video, 0, 0)
+      
+      // Convert the canvas drawing to a JPEG file
+      canvas.toBlob((blob) => {
+        if (blob && wsRef.current?.readyState === WebSocket.OPEN) {
+          // Convert the JPEG file to base64 (a text format we can send over network)
+          const reader = new FileReader()
+          reader.onload = () => {
+            const base64 = reader.result as string
+            // Send the frame to the backend
+            wsRef.current?.send(JSON.stringify({
+              type: "frame",
+              image: base64,
+              timestamp: Date.now()
+            }))
+          }
+          reader.readAsDataURL(blob)
+        }
+      }, 'image/jpeg', 0.7)
+    }
+  }
 
   return (
     <Card className="p-6 bg-card border-border h-full flex flex-col">
@@ -78,23 +131,21 @@ export function CameraFeed() {
         </Button>
       </div>
 
+      {/* NEW: Show connection status */}
+      <div className="mb-4">
+        <p className="text-sm text-muted-foreground">
+          Camera: {status} | Backend: {isConnected ? 'Connected' : 'Disconnected'}
+        </p>
+      </div>
+
       <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-6 relative overflow-hidden flex-1">
-        {streamActive ? (
+        {isActive ? (
           <video
             ref={videoRef}
-            className="w-full h-full object-cover rounded-lg shadow-lg"
-            autoPlay
+            className="w-full h-full object-cover rounded-lg"
             playsInline
             muted
-            style={{
-              filter: 'contrast(1.1) brightness(1.05) saturate(1.1)',
-              imageRendering: 'crisp-edges'
-            }}
-            onLoadStart={() => console.log("Video onLoadStart")}
-            onLoadedData={() => console.log("Video onLoadedData")}
-            onCanPlay={() => console.log("Video onCanPlay")}
-            onPlaying={() => console.log("Video onPlaying")}
-            onError={(e) => console.error("Video error:", e)}
+            autoPlay
           />
         ) : (
           <div className="text-center">
@@ -105,16 +156,21 @@ export function CameraFeed() {
         )}
       </div>
 
+      {/* NEW: Hidden canvas for frame capture */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
       <div className="flex gap-3">
         <Button
-          onClick={streamActive ? stopVideoCapture : startVideoCapture}
-          className={streamActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
+          onClick={isActive ? stopCapture : startCapture}
+          className={isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
           size="lg"
-        >{streamActive ? "Stop Recording" : "Start Recording"}</Button>
-        <Button variant="outline" size="lg">  
+        >
+          {isActive ? "Stop Recording" : "Start Recording"}
+        </Button>
+        <Button variant="outline" size="lg">
           Calibrate Camera
         </Button>
       </div>
     </Card>
-  );
+  )
 }
