@@ -1,60 +1,66 @@
 # Brawlr - AI Boxing Trainer
 
-This repo contains training utilities and a minimal test harness to run your YOLO model on a video and count punches.
+This repo contains a live camera boxing trainer with AI punch detection and training utilities.
 
-## Project Structure (relevant now)
-- `training/` - scripts, test video(s), and punch counter
-- `webapp/backend/models/best.pt` - current model file used by tests
-- `runs/` - YOLO outputs (created on first run; ignored by git)
+## Project Structure
+- `webapp/frontend/` - Next.js frontend with live camera feed
+- `webapp/backend/` - FastAPI backend with YOLO model integration
+- `training/` - Model training scripts and test utilities
+- `webapp/backend/models/best.pt` - Trained YOLO model
 
 ## Prerequisites
 - Windows 10/11
 - Python 3.10+ on PATH (use `py -3` or `python`)
+- Node.js 18+ for frontend
 
-## Setup (choose one shell)
+## Quick Start (Live Camera Demo)
 
-PowerShell
-1. Create venv
-   - `py -3 -m venv .venv` (or `python -m venv .venv`)
-2. Activate venv (if blocked by policy, see Troubleshooting)
-   - `.\.venv\Scripts\Activate.ps1`
-3. Install deps
-   - `python -m pip install --upgrade pip`
-   - `python -m pip install -r requirements.txt -r training\requirements.txt`
+### 1. Setup Backend
+```bash
+# Create and activate venv
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1  # or .venv\Scripts\activate.bat
 
-Command Prompt (cmd.exe)
-1. Create venv
-   - `py -3 -m venv .venv` (or `python -m venv .venv`)
-2. Activate venv
-   - `.venv\Scripts\activate.bat`
-3. Install deps
-   - `python -m pip install --upgrade pip`
-   - `python -m pip install -r requirements.txt -r training\requirements.txt`
+# Install dependencies
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r webapp\backend\requirements.txt
 
-## Run Inference (creates predictions and a log)
-From repo root:
+# Start backend server
+uvicorn webapp.backend.app:app --reload --host 0.0.0.0 --port 8000
+```
 
-PowerShell
-- `python training\testing\run_infer.py training\videos\BagVideo0.MOV cpu *>&1 | Tee-Object -FilePath training\inference_log.txt`
+### 2. Setup Frontend
+```bash
+# In a new terminal, go to frontend directory
+cd webapp\frontend
 
-CMD
-- `python training\testing\run_infer.py training\videos\BagVideo0.MOV cpu > training\inference_log.txt 2>&1`
+# Install dependencies
+npm install
 
-Outputs:
-- Predictions and an annotated video in `runs\detect\predict*`.
-- Logs in `training\inference_log.txt`.
+# Start frontend
+npm run dev
+```
 
-## Count Punches
-PowerShell (repo root)
-- `\.venv\Scripts\python.exe training\testing\count_punches_v5.py training\inference_log.txt`
+### 3. Test Live Camera
+1. Open http://localhost:3000
+2. Click "Start Recording"
+3. Allow camera permissions
+4. You should see your live camera feed
+5. Check browser console for "Punch detected: jab" messages
 
-CMD (repo root)
-- `\.venv\Scripts\python.exe training\testing\count_punches_v5.py training\inference_log.txt`
+## Training Utilities (Legacy)
 
-Optional thresholds (if you see over/under-counting):
-- Append flags, e.g. `--min-cluster 10 --majority 8 --min-gap-lines 10`
+### Run Inference on Video File
+```bash
+python training\testing\run_infer.py PATHTOYOUYRVIDEO.MP4 cpu > training\inference_log.txt 2>&1
+```
+
+### Count Punches from Log
+```bash
+python training\testing\count_punches_v5.py training\inference_log.txt
+```
 
 ## Troubleshooting
-- PowerShell execution policy blocks activation: run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`, then activate again. Or use CMD.
-- Ensure you’re using the venv Python: invoke explicitly as `\.venv\Scripts\python.exe`.
-- Model path: the test runner loads `webapp/backend/models/best.pt`.
+- PowerShell execution policy blocks activation: run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+- Backend not connecting: ensure uvicorn is running on port 8000
+- Camera not working: check browser permissions and HTTPS requirements
