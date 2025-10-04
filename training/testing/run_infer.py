@@ -10,9 +10,19 @@ def main():
 
     source = sys.argv[1]
     device = sys.argv[2] if len(sys.argv) >= 3 else "cpu"  # default to CPU
-
+    
     # Resolve repo root from this file's location
     repo_root = Path(__file__).resolve().parents[2]
+    
+    # If source is a relative path, make it absolute from repo root
+    if not Path(source).is_absolute():
+        source = repo_root / source
+    
+    # Debug: Print what we're using
+    print(f"Source: {source}")
+    print(f"Device: {device}")
+    print(f"Source exists: {Path(source).exists()}")
+    
     # Adjusted to current repo layout: model is under webapp/backend/models/best.pt
     model_path = repo_root / "webapp" / "backend" / "models" / "best.pt"
 

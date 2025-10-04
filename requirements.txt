@@ -12,3 +12,6 @@ flask-cors>=4.0.0
 # Data Processing
 pandas>=2.0.0
 numpy>=1.24.0
+
+# Video Downloading
+yt-dlp>=2023.12.30

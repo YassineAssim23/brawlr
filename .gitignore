@@ -23,11 +23,13 @@ yarn-error.log*
 !desktop/backend/models/best.pt
 
 # Data files
-videos/
+training/videos/*
 sessions/
 *.mp4
 *.avi
 *.mov
+*.MOV
+*.MP4
 inference_log.txt
 
 # OS

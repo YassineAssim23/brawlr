@@ -48,7 +48,16 @@ npm run dev
 4. You should see your live camera feed
 5. Check browser console for "Punch detected: jab" messages
 
-## Training Utilities (Legacy)
+## Training Utilities
+
+### Download Boxing Videos
+```bash
+# Install yt-dlp first
+pip install yt-dlp
+
+# Download a boxing video
+python training\download_video.py "https://www.youtube.com/watch?v=VIDEO_ID"
+```
 
 ### Run Inference on Video File
 ```bash
