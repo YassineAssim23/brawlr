@@ -12,21 +12,44 @@ export function CameraFeed() {
   type CameraStatus = 'Permission Needed' | 'Camera On' | 'Camera Off'
   const [status, setStatus] = useState<CameraStatus>('Permission Needed')
 
-  // WebSocket and frame capture state
-  const wsRef = useRef<WebSocket | null>(null)  // Holds WebSocket connection
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)  // Holds timer ID
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)  // Hidden canvas for frame capture
-  const [isConnected, setIsConnected] = useState(false)  // Backend connection status
+   // WebSocket and frame capture state
+   const wsRef = useRef<WebSocket | null>(null)  // Holds WebSocket connection
+   const intervalRef = useRef<NodeJS.Timeout | null>(null)  // Holds timer ID
+   const canvasRef = useRef<HTMLCanvasElement | null>(null)  // Hidden canvas for frame capture
+   const [isConnected, setIsConnected] = useState(false)  // Backend connection status
+   
+   // Debouncing to prevent spam detections
+   const lastDetectionTime = useRef<number>(0)
+   const MIN_DETECTION_INTERVAL = 500 // 500ms between detections
 
   // Existing startCapture function
   async function startCapture(){
     try{
+      console.log('startCapture called!')
       setStatus('Permission Needed')
+      
+      console.log('Requesting camera permission...')
       const stream = await navigator.mediaDevices.getUserMedia({video: true})
+      console.log('Camera stream received:', stream)
 
       if (videoRef.current){
+        console.log('Setting video srcObject...')
         videoRef.current.srcObject = stream
-        await videoRef.current.play()
+        console.log('Video srcObject set to:', videoRef.current.srcObject)
+        
+        // Wait for the video to be ready before playing
+        console.log('Waiting for video to be ready...')
+        await new Promise((resolve) => {
+          videoRef.current!.onloadedmetadata = () => {
+            console.log('Video metadata loaded, starting playback...')
+            videoRef.current!.play().then(() => {
+              console.log('Video started playing!')
+              resolve(true)
+            })
+          }
+        })
+      } else {
+        console.log('ERROR: videoRef.current is null!')
       }
 
       setStatus('Camera On')
@@ -42,14 +65,33 @@ export function CameraFeed() {
         intervalRef.current = setInterval(captureFrame, 100)
       }
 
-      // When we receive a message from backend
-      wsRef.current.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        if (data.type === 'punch') {
-          console.log('Punch detected:', data.punchType)
-          // TODO: Update punch counters
-        }
-      }
+       // When we receive a message from backend
+       wsRef.current.onmessage = (event) => {
+         const data = JSON.parse(event.data)
+         if (data.type === 'punch') {
+           const now = Date.now()
+           
+           // Debug: Show ALL detections to see what's happening
+           console.log(`🔍 Raw detection: ${data.punchType} (${Math.round(data.confidence * 100)}%)`)
+           
+           // Lower the confidence threshold to 0.5 (50%) to see more detections
+           if (data.confidence > 0.5) {
+             // Debounce: only show if enough time has passed since last detection
+             if (now - lastDetectionTime.current > MIN_DETECTION_INTERVAL) {
+               console.log(`🥊 ${data.punchType.toUpperCase()} detected! (${Math.round(data.confidence * 100)}% confidence)`)
+               lastDetectionTime.current = now
+               // TODO: Update punch counters
+             } else {
+               console.log(`🔄 ${data.punchType} detected but too soon (${Math.round(data.confidence * 100)}%) - debouncing`)
+             }
+           } else {
+             console.log(`⚠️ Low confidence ${data.punchType} (${Math.round(data.confidence * 100)}%) - ignoring`)
+           }
+         } else if (data.type === 'no_punch') {
+           // Show when no punch is detected (less spam)
+           // console.log('No punch detected')
+         }
+       }
 
       // When WebSocket connection closes
       wsRef.current.onclose = () => {
@@ -139,16 +181,19 @@ export function CameraFeed() {
       </div>
 
       <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-6 relative overflow-hidden flex-1">
-        {isActive ? (
-          <video
-            ref={videoRef}
-            className="w-full h-full object-cover rounded-lg"
-            playsInline
-            muted
-            autoPlay
-          />
-        ) : (
-          <div className="text-center">
+        {/* Always render video element, but hide it when not active */}
+        <video
+          ref={videoRef}
+          className={`w-full h-full object-cover rounded-lg ${isActive ? 'block' : 'hidden'}`}
+          playsInline
+          muted
+          autoPlay
+          style={{ width: '100%', height: '100%' }}
+        />
+        
+        {/* Show placeholder when camera is off */}
+        {!isActive && (
+          <div className="text-center absolute inset-0 flex flex-col items-center justify-center">
             <CameraOff className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
             <p className="text-xl text-muted-foreground font-medium">Ready to Start</p>
             <p className="text-muted-foreground/70">Click the button below to begin recording the fight</p>
