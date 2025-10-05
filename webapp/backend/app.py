@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import YOLOProcessor
+from .models import YOLOProcessor
 import json
 import time
 import tempfile

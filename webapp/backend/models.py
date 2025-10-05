@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 from ultralytics import YOLO
-from utils import base64_to_image, format_punch_result, preprocess_image
+from .utils import base64_to_image, format_punch_result, preprocess_image
 
 class YOLOProcessor:
     """
