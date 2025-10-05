@@ -3,6 +3,7 @@ import { CameraFeed } from "@/components/camera-feed"
 import { FighterCards } from "@/components/fighter-cards"
 import { MatchControls } from "@/components/match-controls"
 import { LiveStats } from "@/components/live-stats"
+import { VideoUpload } from "@/components/video-upload"
 
 export default function HomePage() {
   return (
@@ -18,9 +19,10 @@ export default function HomePage() {
         </div>
 
         <div className="grid lg:grid-cols-5 gap-8">
-          {/* Left Column - Camera Feed (Main Focus) */}
+          {/* Left Column - Camera Feed & Video Upload */}
           <div className="lg:col-span-3 space-y-6">
             <CameraFeed />
+            <VideoUpload />
             <MatchControls />
           </div>
 

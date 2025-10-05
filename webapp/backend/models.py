@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 from ultralytics import YOLO
-from .utils import base64_to_image, format_punch_result, preprocess_image
+from utils import base64_to_image, format_punch_result, preprocess_image
 
 class YOLOProcessor:
     """
@@ -153,3 +153,115 @@ class YOLOProcessor:
         except Exception as e:
             print(f"Error parsing YOLO results: {e}")
             return None
+    
+    def process_video(self, video_path):
+        """
+        Process an entire video file and count punches using cluster analysis
+        
+        What this does:
+        - Loads video file
+        - Processes each frame with YOLO
+        - Groups consecutive punch detections into clusters
+        - Counts each cluster as 1 punch (not 30+ frames)
+        - Returns total counts
+        
+        Args:
+            video_path: Path to video file
+        
+        Returns:
+            dict: Punch counts by type
+        """
+        if self.model is None:
+            raise Exception("YOLO model not loaded")
+        
+        try:
+            print(f"Processing video: {video_path}")
+            
+            # Initialize punch counters
+            punch_counts = {
+                "jab": 0,
+                "cross": 0,
+                "hook": 0,
+                "uppercut": 0,
+                "total": 0
+            }
+            
+            # Process video with YOLO
+            results = self.model.predict(
+                source=video_path,
+                conf=self.confidence_threshold,
+                verbose=False,
+                save=False  # Don't save output video
+            )
+            
+            # Cluster analysis for punch counting
+            current_cluster_punches = []
+            in_cluster = False
+            
+            for result in results:
+                boxes = result.boxes
+                frame_has_punch = False
+                frame_punch_type = None
+                
+                if boxes is not None and len(boxes) > 0:
+                    for box in boxes:
+                        class_id = int(box.cls[0])
+                        confidence = float(box.conf[0])
+                        class_name = self.model.names[class_id]
+                        
+                        # Check if this is a punch type
+                        if class_name in ["jab", "cross", "hook", "uppercut"]:
+                            frame_has_punch = True
+                            frame_punch_type = class_name
+                            break  # Take the first punch detection in this frame
+                
+                # Cluster logic (based on count_punches_v5.py)
+                if frame_has_punch and frame_punch_type:
+                    # Add punch to current cluster
+                    current_cluster_punches.append(frame_punch_type)
+                    in_cluster = True
+                    print(f"Frame punch: {frame_punch_type}")
+                    
+                elif in_cluster and len(current_cluster_punches) > 0:
+                    # End of cluster - analyze it
+                    print(f"Cluster ended. Punches: {current_cluster_punches}")
+                    
+                    # Only count if cluster has enough frames (minimum 8)
+                    if len(current_cluster_punches) >= 8:
+                        # Count frame types in cluster
+                        jab_frames = current_cluster_punches.count("jab")
+                        cross_frames = current_cluster_punches.count("cross")
+                        hook_frames = current_cluster_punches.count("hook")
+                        uppercut_frames = current_cluster_punches.count("uppercut")
+                        
+                        # Find majority punch type
+                        punch_frame_counts = {
+                            "jab": jab_frames,
+                            "cross": cross_frames,
+                            "hook": hook_frames,
+                            "uppercut": uppercut_frames
+                        }
+                        
+                        majority_punch = max(punch_frame_counts, key=punch_frame_counts.get)
+                        majority_count = punch_frame_counts[majority_punch]
+                        
+                        # Only count if majority has at least 6 frames
+                        if majority_count >= 6:
+                            punch_counts[majority_punch] += 1
+                            punch_counts["total"] += 1
+                            print(f"Counted 1 {majority_punch} punch")
+                        else:
+                            print(f"No punch type had 6+ frames - ignoring cluster")
+                    else:
+                        print(f"Cluster too short ({len(current_cluster_punches)} frames) - ignoring")
+                    
+                    # Reset for next cluster
+                    current_cluster_punches = []
+                    in_cluster = False
+            
+            print(f"Video processing complete. Punch counts: {punch_counts}")
+            return punch_counts
+            
+        except Exception as e:
+            print(f"Error processing video: {e}")
+            raise Exception(f"Video processing failed: {str(e)}")

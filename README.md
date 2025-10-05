@@ -59,14 +59,27 @@ pip install yt-dlp
 python training\download_video.py "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
-### Run Inference on Video File
+### Run Inference on Video File (CPU)
 ```bash
-python training\testing\run_infer.py PATHTOYOUYRVIDEO.MP4 cpu > training\inference_log.txt 2>&1
+python training\testing\run_infer.py "PATHTOYOUYRVIDEO.MP4" cpu > training\inference_log.txt 2>&1 
 ```
 
+### Run Inference on Video File (GPU)
+```bash
+python training\testing\run_infer.py "PATHTOYOUYRVIDEO.MP4" > training\inference_log.txt 2>&1
+```
+OR
+
+```bash
+python training\testing\run_infer_with_log.py "PATHTOYOUYRVIDEO.MP4" cuda
+```
 ### Count Punches from Log
 ```bash
-python training\testing\count_punches_v5.py training\inference_log.txt
+# Auto-find latest (recommended)
+python training\testing\count_punches_v5.py
+
+# Or specify a specific log if needed
+python training\testing\count_punches_v5.py "runs\detect\predict2\inference_log.txt"
 ```
 
 ## Troubleshooting
