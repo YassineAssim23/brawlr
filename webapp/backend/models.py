@@ -14,7 +14,7 @@ class YOLOProcessor:
     - Returns formatted results for frontend
     """
     
-    def __init__(self, model_path=None):
+    def __init__(self, model_path=None, confidence_threshold=0.15):
         """
         Initialize YOLO processor and load model
         
@@ -25,6 +25,7 @@ class YOLOProcessor:
         
         Args:
             model_path: Optional path to model file
+            confidence_threshold: Minimum confidence for detections (default 0.15)
         """
         if model_path is None:
             # Find model file relative to this file
@@ -38,8 +39,8 @@ class YOLOProcessor:
             self.model = YOLO(str(model_path))
             print("YOLO model loaded successfully!")
             
-            # Set confidence threshold (only show detections with 25%+ confidence)
-            self.confidence_threshold = 0.25
+            # Set confidence threshold (configurable to catch more detections on stock videos)
+            self.confidence_threshold = confidence_threshold
             
         except Exception as e:
             print(f"Error loading YOLO model: {e}")

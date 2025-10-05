@@ -36,7 +36,7 @@ def main():
     model = YOLO(str(model_path))
     
     # Run prediction and get results
-    results = model.predict(source=source, conf=0.25, device=device, save=True, verbose=True)
+    results = model.predict(source=source, conf=0.1, device=device, save=True, verbose=True)
     
     # Build the frame detection log manually from results
     frame_detections = []
