@@ -19,7 +19,7 @@ This repo contains a live camera boxing trainer with AI punch detection and trai
 ```bash
 # Create and activate venv
 py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1  # or .venv\Scripts\activate.bat
+.\.venv\Scripts\Activate  # or .venv\Scripts\activate.bat
 
 # Install dependencies
 python -m pip install --upgrade pip
@@ -71,7 +71,7 @@ python training\testing\run_infer.py "PATHTOYOUYRVIDEO.MP4" > training\inference
 OR
 
 ```bash
-python training\testing\run_infer_with_log.py "PATHTOYOUYRVIDEO.MP4" cuda
+python training\testing\run_infer.py "PATHTOYOUYRVIDEO.MP4" cuda
 ```
 ### Count Punches from Log
 ```bash

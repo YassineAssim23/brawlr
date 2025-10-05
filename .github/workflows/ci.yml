@@ -57,7 +57,91 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
+      - name: Test critical ML dependencies
+        run: |
+          python -c "import ultralytics; print('✅ YOLO imports successfully')"
+          python -c "import cv2; print('✅ OpenCV imports successfully')"
+          python -c "import torch; print('✅ PyTorch imports successfully')"
+          python -c "import numpy; print('✅ NumPy imports successfully')"
       - name: Test FastAPI import
-        run: python -c "from webapp.backend.app import app; print('FastAPI app loads successfully')"
+        run: python -c "from webapp.backend.app import app; print('✅ FastAPI app loads successfully')"
       - name: Test WebSocket endpoint exists
-        run: python -c "from webapp.backend.app import app; assert '/ws' in [route.path for route in app.routes]"
+        run: python -c "from webapp.backend.app import app; assert '/ws' in [route.path for route in app.routes]; print('✅ WebSocket endpoint found')"
+      - name: Test backend modules
+        run: |
+          python -c "from webapp.backend.models import YOLOProcessor; print('✅ YOLOProcessor imports successfully')"
+          python -c "from webapp.backend.utils import base64_to_image, format_punch_result; print('✅ Utils functions import successfully')"
+
+  training-scripts:
+    name: Training scripts validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Test training script imports
+        run: |
+          python -c "import training.download_data; print('✅ download_data.py imports successfully')"
+          python -c "import training.download_video; print('✅ download_video.py imports successfully')"
+          python -c "import training.extract_frames; print('✅ extract_frames.py imports successfully')"
+          python -c "import training.merge_yolo_multi; print('✅ merge_yolo_multi.py imports successfully')"
+      - name: Test inference scripts
+        run: |
+          python -c "import training.testing.run_infer; print('✅ run_infer.py imports successfully')"
+          python -c "import training.testing.count_punches_v5; print('✅ count_punches_v5.py imports successfully')"
+      - name: Validate data.yaml configuration
+        run: |
+          python -c "
+          import yaml
+          with open('training/data.yaml', 'r') as f:
+            data = yaml.safe_load(f)
+          assert 'nc' in data, 'Missing nc (number of classes)'
+          assert 'names' in data, 'Missing class names'
+          assert data['nc'] == 6, f'Expected 6 classes, got {data[\"nc\"]}'
+          assert len(data['names']) == 6, f'Expected 6 class names, got {len(data[\"names\"])}'
+          print('✅ data.yaml configuration is valid')
+          "
+
+  model-check:
+    name: YOLO model file check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check model file exists
+        run: |
+          if [ -f "webapp/backend/models/best.pt" ]; then
+            echo "✅ Model file found"
+            ls -la webapp/backend/models/best.pt
+          else
+            echo "❌ Model file missing"
+            exit 1
+          fi
+      - name: Check model directory structure
+        run: |
+          ls -la webapp/backend/models/
+          echo "✅ Model directory structure is correct"
+
+  project-structure:
+    name: Project structure validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate project structure
+        run: |
+          echo "Checking project structure..."
+          [ -d "webapp/backend" ] && echo "✅ Backend directory exists" || exit 1
+          [ -d "webapp/frontend" ] && echo "✅ Frontend directory exists" || exit 1
+          [ -d "training" ] && echo "✅ Training directory exists" || exit 1
+          [ -f "requirements.txt" ] && echo "✅ requirements.txt exists" || exit 1
+          [ -f "webapp/frontend/package.json" ] && echo "✅ package.json exists" || exit 1
+          [ -f "training/data.yaml" ] && echo "✅ data.yaml exists" || exit 1
+          echo "✅ All required project files and directories found"
