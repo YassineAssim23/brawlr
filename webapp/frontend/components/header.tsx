@@ -1,4 +1,17 @@
+/*
+Created by:Toufiq
+Date: September 23, 2025
+Description: Header component for the boxing match analysis application.
+
+This page provides buttons for various navigation options and camera settings.
+
+Updated by: Mariah Falzon
+Date Updated: October 7, 2025
+Notes: Updated layout and styling for better user experience.
+*/
+
 import { Button } from "@/components/ui/button"
+import { ShareButton } from "@/components/share-button"
 import { Settings, User, Menu } from "lucide-react"
 
 export function Header() {
@@ -16,20 +29,10 @@ export function Header() {
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              LIVE MATCHES
-            </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              HISTORY
-            </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              ANALYTICS
-            </Button>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              SETTINGS
-            </Button>
+            {/* Share button to provide link via copy, email etc. WIll be a pop up and created later */}
+            <ShareButton />
           </nav>
-
+{/* 
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />
@@ -40,7 +43,7 @@ export function Header() {
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-5 w-5" />
             </Button>
-          </div>
+          </div> */}
         </div>
       </div>
     </header>
