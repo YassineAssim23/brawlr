@@ -1,3 +1,12 @@
+/*
+Created by: Yassine Assim
+Date: October 1, 2025
+Description: Component for uploading boxing videos for analysis to the model
+
+Updated by: 
+Date Updated: 
+Notes: 
+*/
 "use client"
 
 import { useState, useRef } from "react"

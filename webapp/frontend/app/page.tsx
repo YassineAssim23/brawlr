@@ -1,3 +1,13 @@
+/*
+Created by:Toufiq 
+Date: 
+Description: Layout for the home page including header, camera feed, match controls, and analytics dashboard.
+
+Updated by: Mariah Falzon
+Date Updated: October 7, 2025
+Notes: updated code to include analytics dashboard component and reflect new design
+*/
+
 import { Header } from "@/components/header"
 import { CameraFeed } from "@/components/camera-feed"
 import { MatchControls } from "@/components/match-controls"
