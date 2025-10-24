@@ -65,8 +65,7 @@ def read_lines_with_fallbacks(path: Path):
 lines = read_lines_with_fallbacks(log_path)
 
 # Initialize each punch type count to 0
-jab_count = 0
-cross_count = 0
+straight_count = 0
 hook_count = 0
 uppercut_count = 0
 
@@ -84,12 +83,9 @@ for line in lines:
     has_punch = False
     punch_type = None
     
-    if "frame" in line and ("jab" in line or "cross" in line or "hook" in line or "uppercut" in line):
-        if "jab" in line:
-            punch_type = "jab"
-            has_punch = True
-        elif "cross" in line:
-            punch_type = "cross"
+    if "frame" in line and ("straight" in line or "hook" in line or "uppercut" in line):
+        if "straight" in line:
+            punch_type = "straight"
             has_punch = True
         elif "hook" in line:
             punch_type = "hook"
@@ -139,13 +135,10 @@ for line in lines:
     has_punch = False
     punch_type = None
     
-    if "frame" in line and ("jab" in line or "cross" in line or "hook" in line or "uppercut" in line):
+    if "frame" in line and ("straight" in line or "hook" in line or "uppercut" in line):
         # Extract punch type
-        if "jab" in line:
-            punch_type = "jab"
-            has_punch = True
-        elif "cross" in line:
-            punch_type = "cross"
+        if "straight" in line:
+            punch_type = "straight"
             has_punch = True
         elif "hook" in line:
             punch_type = "hook"
@@ -161,7 +154,7 @@ for line in lines:
         print(f"Punch type: {punch_type}") # Prints all punch types found in the cluster
         
     # If the line contains "no detections" or no punch type, then the cluster has ended
-    elif "frame" in line and ("no detections" in line or ("jab" not in line and "cross" not in line and "hook" not in line and "uppercut" not in line)):
+    elif "frame" in line and ("no detections" in line or ("straight" not in line and "hook" not in line and "uppercut" not in line)):
         
         if in_cluster and len(current_cluster_punches) > 0:
             print(f"Cluster Ended\nPunches found: {current_cluster_punches}")
@@ -175,21 +168,18 @@ for line in lines:
             
             if len(current_cluster_punches) >= min_cluster_size:
                 # Counts how many of each punch type detected
-                jab_frames = current_cluster_punches.count("jab")
-                cross_frames = current_cluster_punches.count("cross")
+                straight_frames = current_cluster_punches.count("straight")
                 hook_frames = current_cluster_punches.count("hook")
                 uppercut_frames = current_cluster_punches.count("uppercut")
                 
                 print("Cluster analysis:")
-                print(f"  Jab frames: {jab_frames}")
-                print(f"  Cross frames: {cross_frames}")
+                print(f"  Straight frames: {straight_frames}")
                 print(f"  Hook frames: {hook_frames}")
                 print(f"  Uppercut frames: {uppercut_frames}")
                 
                 # Find which punch type was detected in the most frames
                 punch_counts = {
-                    "jab": jab_frames,
-                    "cross": cross_frames,
+                    "straight": straight_frames,
                     "hook": hook_frames,
                     "uppercut": uppercut_frames
                 }
@@ -218,10 +208,8 @@ for line in lines:
                     min_majority = 5  # Home videos: need 5+ frames for majority (stricter)
                 
                 if majority_count >= min_majority:
-                    if majority_punch == "jab": # Increments the punch count
-                        jab_count += 1
-                    elif majority_punch == "cross":
-                        cross_count += 1
+                    if majority_punch == "straight": # Increments the punch count
+                        straight_count += 1
                     elif majority_punch == "hook":
                         hook_count += 1
                     elif majority_punch == "uppercut":
@@ -241,11 +229,10 @@ print("==================================================")
 print("FINAL PUNCH COUNT RESULTS")
 print("==================================================")
 # print(video_type)
-print(f"Jab: {jab_count}") # STRAIGHT
-print(f"Cross: {cross_count}") # STRAIGHT
+print(f"Straight: {straight_count}")
 print(f"Hook: {hook_count}")
 print(f"Uppercut: {uppercut_count}")
-print(f"Total punches: {jab_count + cross_count + hook_count + uppercut_count}")
+print(f"Total punches: {straight_count + hook_count + uppercut_count}")
 print("==================================================")
 # Note: Update expected results based on the specific video being analyzed
 print("\nNote: Update expected results in this script based on the video being analyzed")
@@ -253,5 +240,5 @@ print("\nNote: Update expected results in this script based on the video being a
 # TO RUN SCRIPT:
 # cd brawlr\brawlr
 # .\.venv\Scripts\Activate
-# TO RUN COUNTING MODEL: python training\testing\count_punches_v5.py training\inference_log.txt
-# TO DISPLAY COUNT: python training\testing\count_punches_v5.py training\inference_log.txt
+# TO RUN COUNTING MODEL: python training\testing\count_punches_v6.py training\inference_log.txt
+# TO DISPLAY COUNT: python training\testing\count_punches_v6.py training\inference_log.txt
