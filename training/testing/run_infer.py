@@ -27,7 +27,7 @@ def main():
     print(f"Source exists: {Path(source).exists()}")
     
     # Adjusted to current repo layout: model is under webapp/backend/models/best.pt
-    model_path = repo_root / "webapp" / "backend" / "models" / "best.pt"
+    model_path = repo_root / "webapp" / "backend" / "models" / "best_straight_v1.pt"
 
     if not model_path.exists():
         print(f"Model not found: {model_path}")

@@ -240,5 +240,5 @@ print("\nNote: Update expected results in this script based on the video being a
 # TO RUN SCRIPT:
 # cd brawlr\brawlr
 # .\.venv\Scripts\Activate
-# TO RUN COUNTING MODEL: python training\testing\count_punches_v6.py training\inference_log.txt
-# TO DISPLAY COUNT: python training\testing\count_punches_v6.py training\inference_log.txt
+# Generate inference_log.txt: python training\testing\run_infer.py "training\videos\BagVideoTESTONLY.avi" cpu > training\inference_log.txt 2>&1
+# Count punches: python training\testing\count_punches_v6.py training\inference_log.txt
