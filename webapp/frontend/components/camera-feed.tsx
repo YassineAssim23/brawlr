@@ -1,3 +1,13 @@
+/*
+Created by: Yassine Assim
+Date: October 2025
+Description: Component to display live camera feed and handle video capture and streaming to backend for punch detection.
+
+Updated by: Mariah Falzon
+Date Updated:October 24, 2025
+Notes: added punch context to update punch stats upon detection
+*/
+
 "use client"
 
 import { useState, useRef } from "react"

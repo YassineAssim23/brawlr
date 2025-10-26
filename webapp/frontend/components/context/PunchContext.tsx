@@ -1,3 +1,12 @@
+/*
+Created by:Mariah Falzon
+Date: October 24, 2025
+Description: Context to manage punch statistics across the application.
+
+Updated by: 
+Date Updated:
+Notes: 
+*/
 "use client"
 
 import React, { createContext, useContext, useState } from "react"

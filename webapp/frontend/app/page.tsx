@@ -53,6 +53,7 @@ export default function HomePage() {
               <VideoUpload />
           </div>
         </div>
+
       </main>
     </div>
   )

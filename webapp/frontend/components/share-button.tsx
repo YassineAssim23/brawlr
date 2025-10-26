@@ -18,10 +18,18 @@ export const ShareButton = () => {
     const [open, setShowShare] = useState(false);
     return (
         <div>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground"
-            //When button is clicked the modal is shown
-                onClick={() => setShowShare(true)}
-            >
+<Button
+  className="
+    bg-brawlr-red
+    text-white 
+    hover:from-brawlr-red hover:to-brawlr-blue
+    hover:shadow-[0_0_25px_rgba(0,255,255,0.6)] 
+    hover:scale-110 
+    transition-all duration-300 
+    rounded-xl
+  "
+  onClick={() => setShowShare(true)}
+>
                 SHARE
             </Button>   
             <ShareModal open={open} onClose={() => setShowShare(false)} />

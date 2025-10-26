@@ -32,18 +32,6 @@ export function Header() {
             {/* Share button to provide link via copy, email etc. WIll be a pop up and created later */}
             <ShareButton />
           </nav>
-{/* 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon">
-              <Settings className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div> */}
         </div>
       </div>
     </header>
