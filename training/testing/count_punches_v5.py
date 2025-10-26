@@ -250,3 +250,4 @@ print("==================================================")
 # Note: Update expected results based on the specific video being analyzed
 print("\nNote: Update expected results in this script based on the video being analyzed")
 
+# python training\testing\count_punches_v5.py training\inference_log.txt
