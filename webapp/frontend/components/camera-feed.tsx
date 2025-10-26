@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Camera, CameraOff, Settings } from "lucide-react"
+import { usePunches } from "@/components/context/PunchContext"
 
 export function CameraFeed() {
   // state variables
@@ -21,6 +22,9 @@ export function CameraFeed() {
    // Debouncing to prevent spam detections
    const lastDetectionTime = useRef<number>(0)
    const MIN_DETECTION_INTERVAL = 500 // 500ms between detections
+
+   //add punch context
+   const { addPunch } = usePunches()
 
   // Existing startCapture function
   async function startCapture(){
@@ -70,9 +74,12 @@ export function CameraFeed() {
          const data = JSON.parse(event.data)
          if (data.type === 'punch') {
            const now = Date.now()
+
+           //update live punch stats
+            addPunch(data.punchType)
            
            // Debug: Show ALL detections to see what's happening
-           console.log(`🔍 Raw detection: ${data.punchType} (${Math.round(data.confidence * 100)}%)`)
+           console.log(`🥊 ${data.punchType.toUpperCase()} detected! (${Math.round(data.confidence * 100)}% confidence)`)
            
            // Lower the confidence threshold to 0.5 (50%) to see more detections
            if (data.confidence > 0.5) {
@@ -167,10 +174,6 @@ export function CameraFeed() {
     <Card className="p-6 bg-card border-border h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-semibold text-foreground">Live Camera Feed</h3>
-        <Button variant="outline" size="sm">
-          <Settings className="h-4 w-4 mr-2" />
-          Configure
-        </Button>
       </div>
 
       {/* NEW: Show connection status */}
@@ -210,10 +213,7 @@ export function CameraFeed() {
           className={isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
           size="lg"
         >
-          {isActive ? "Stop Recording" : "Start Recording"}
-        </Button>
-        <Button variant="outline" size="lg">
-          Calibrate Camera
+          {isActive ? "Stop Training" : "Start Training"}
         </Button>
       </div>
     </Card>
