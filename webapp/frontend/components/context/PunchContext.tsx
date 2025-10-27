@@ -12,12 +12,14 @@ Notes: Added MatchContext reset trigger integration from the match controls
 import React, { createContext, useContext, useState, useEffect } from "react"
 import { useMatch } from "./MatchContext"
 
-type PunchType = "jab" | "cross" | "hook" | "uppercut" | null
+// type PunchType = "jab" | "cross" | "hook" | "uppercut" | null
+type PunchType = "straight" | "hook" | "uppercut" | null // ADDED STRAIGHT
 
 interface PunchStats {
   total: number
-  jab: number
-  cross: number
+  // jab: number
+  // cross: number
+  straight: number // ADDED STRAIGHT
   hook: number
   uppercut: number
 }
@@ -35,8 +37,9 @@ export const PunchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { resetAnalytics } = useMatch() //listener event for resets from MatchContext
   const [stats, setStats] = useState<PunchStats>({
     total: 0,
-    jab: 0,
-    cross: 0,
+    // jab: 0,
+    // cross: 0,
+    straight: 0, // ADDED STRAIGHT
     hook: 0,
     uppercut: 0,
   })
