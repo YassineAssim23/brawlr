@@ -17,8 +17,9 @@ export function AnalyticsDashboard() {
 const { stats } = usePunches()
   const statItems = [
     { label: "Total Punches", value: stats.total, icon: Target, color: "text-primary" },
-    { label: "Jabs Landed", value: stats.jab, icon: TrendingUp, color: "text-primary" },
-    { label: "Crosses Landed", value: stats.cross, icon: Award, color: "text-secondary" },
+    // { label: "Jabs Landed", value: stats.jab, icon: TrendingUp, color: "text-primary" },
+    // { label: "Crosses Landed", value: stats.cross, icon: Award, color: "text-secondary" },
+    { label: "Straights Landed", value: stats.straight, icon: TrendingUp, color: "text-primary" }, // ADDED STRAIGHT
     { label: "Hooks Landed", value: stats.hook, icon: Zap, color: "text-destructive" },
     { label: "Uppercuts Landed", value: stats.uppercut, icon: Zap, color: "text-destructive" },
   ]

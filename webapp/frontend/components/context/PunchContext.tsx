@@ -11,12 +11,14 @@ Notes:
 
 import React, { createContext, useContext, useState } from "react"
 
-type PunchType = "jab" | "cross" | "hook" | "uppercut" | null
+// type PunchType = "jab" | "cross" | "hook" | "uppercut" | null
+type PunchType = "straight" | "hook" | "uppercut" | null // ADDED STRAIGHT
 
 interface PunchStats {
   total: number
-  jab: number
-  cross: number
+  // jab: number
+  // cross: number
+  straight: number // ADDED STRAIGHT
   hook: number
   uppercut: number
 }
@@ -31,8 +33,9 @@ const PunchContext = createContext<PunchContextType | undefined>(undefined)
 export const PunchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [stats, setStats] = useState<PunchStats>({
     total: 0,
-    jab: 0,
-    cross: 0,
+    // jab: 0,
+    // cross: 0,
+    straight: 0, // ADDED STRAIGHT
     hook: 0,
     uppercut: 0,
   })

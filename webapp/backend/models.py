@@ -30,7 +30,7 @@ class YOLOProcessor:
         if model_path is None:
             # Find model file relative to this file
             current_dir = Path(__file__).parent
-            model_path = current_dir / "models" / "best.pt"
+            model_path = current_dir / "models" / "best_straight_v1.pt" # CHANGED MODEL FROM best.pt
         
         print(f"Loading YOLO model from: {model_path}")
         
@@ -135,7 +135,8 @@ class YOLOProcessor:
                 all_detections.append(f"{class_name}({confidence:.2f})")
                 
                 # Check if this is a punch type
-                if class_name in ["jab", "cross", "hook", "uppercut"]:
+                # if class_name in ["jab", "cross", "hook", "uppercut"]:
+                if class_name in ["straight", "hook", "uppercut"]: # CHANGED TO STRAIGHT
                     if confidence > best_confidence:
                         best_confidence = confidence
                         best_punch_type = class_name
@@ -180,8 +181,9 @@ class YOLOProcessor:
             
             # Initialize punch counters
             punch_counts = {
-                "jab": 0,
-                "cross": 0,
+                # "jab": 0,
+                # "cross": 0,
+                "straight": 0, # ADDED STRAIGHT
                 "hook": 0,
                 "uppercut": 0,
                 "total": 0
@@ -211,7 +213,8 @@ class YOLOProcessor:
                         class_name = self.model.names[class_id]
                         
                         # Check if this is a punch type
-                        if class_name in ["jab", "cross", "hook", "uppercut"]:
+                        # if class_name in ["jab", "cross", "hook", "uppercut"]:
+                        if class_name in ["straight", "hook", "uppercut"]: # ADDED STRAIGHT
                             frame_has_punch = True
                             frame_punch_type = class_name
                             break  # Take the first punch detection in this frame
@@ -230,15 +233,17 @@ class YOLOProcessor:
                     # Only count if cluster has enough frames (minimum 8)
                     if len(current_cluster_punches) >= 8:
                         # Count frame types in cluster
-                        jab_frames = current_cluster_punches.count("jab")
-                        cross_frames = current_cluster_punches.count("cross")
+                        # jab_frames = current_cluster_punches.count("jab")
+                        # cross_frames = current_cluster_punches.count("cross")
+                        straight_frames = current_cluster_punches.count("straight") # ADDED STRAIGHT
                         hook_frames = current_cluster_punches.count("hook")
                         uppercut_frames = current_cluster_punches.count("uppercut")
                         
                         # Find majority punch type
                         punch_frame_counts = {
-                            "jab": jab_frames,
-                            "cross": cross_frames,
+                            # "jab": jab_frames,
+                            # "cross": cross_frames,
+                            "straight": straight_frames,
                             "hook": hook_frames,
                             "uppercut": uppercut_frames
                         }
