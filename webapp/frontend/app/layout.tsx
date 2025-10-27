@@ -21,10 +21,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <PunchProvider>
           <Suspense fallback={null}>{children}</Suspense>
           <Analytics />
-        </PunchProvider>
       </body>
     </html>
   )

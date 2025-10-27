@@ -3,13 +3,14 @@ Created by:Mariah Falzon
 Date: October 24, 2025
 Description: Context to manage punch statistics across the application.
 
-Updated by: 
-Date Updated:
-Notes: 
+Updated by: Mariah
+Date Updated: October 27, 2025
+Notes: Added MatchContext reset trigger integration from the match controls 
 */
 "use client"
 
-import React, { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useState, useEffect } from "react"
+import { useMatch } from "./MatchContext"
 
 type PunchType = "jab" | "cross" | "hook" | "uppercut" | null
 
@@ -24,11 +25,14 @@ interface PunchStats {
 interface PunchContextType {
   stats: PunchStats
   addPunch: (type: PunchType) => void
+  resetPunches: () => void
 }
 
 const PunchContext = createContext<PunchContextType | undefined>(undefined)
 
 export const PunchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+
+  const { resetAnalytics } = useMatch() //listener event for resets from MatchContext
   const [stats, setStats] = useState<PunchStats>({
     total: 0,
     jab: 0,
@@ -46,8 +50,25 @@ export const PunchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }))
   }
 
+  //reset punches when triggered from MatchContext
+  const resetPunches = () => {
+    setStats({
+      total: 0,
+      jab: 0,
+      cross: 0,
+      hook: 0,
+      uppercut: 0,
+    })
+    console.log("Punch stats reset")
+  }
+
+  // Effect to listen for reset trigger from MatchContext
+  useEffect(() => {
+    resetPunches()
+  }, [resetAnalytics])
+
   return (
-    <PunchContext.Provider value={{ stats, addPunch }}>
+    <PunchContext.Provider value={{ stats, addPunch, resetPunches }}>
       {children}
     </PunchContext.Provider>
   )
@@ -62,4 +83,4 @@ export const usePunches = () => {
 }
 
 // At the bottom of PunchContext.tsx
-console.log('PunchContext exports:', { usePunches, PunchProvider });
+console.log("PunchContext exports:", { usePunches, PunchProvider })

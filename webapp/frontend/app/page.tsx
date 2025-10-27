@@ -11,11 +11,12 @@ Notes: updated code to include analytics dashboard component and reflect new des
 import { Header } from "@/components/header"
 import { CameraFeed } from "@/components/camera-feed"
 import { MatchControls } from "@/components/match-controls"
+import { MatchProvider } from "@/components/context/MatchContext"
 import { VideoUpload } from "@/components/video-upload"
-import { Button } from "@/components/ui/button"
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { DailyChallengeButton } from "@/components/daily-challenge-button";
 import { LeaderboardButton } from "@/components/leaderboard-button"
+import { PunchProvider } from "@/components/context/PunchContext"
 
 export default function HomePage() {
 
@@ -38,8 +39,10 @@ export default function HomePage() {
         <div className="flex justify-center items-center gap-8 mb-14">
           <LeaderboardButton/>
           <DailyChallengeButton />
-
         </div>
+
+        <MatchProvider>
+          <PunchProvider>
         <div className="flex flex-col lg:flex-col gap-10">
           {/* Top Row - Video Upload & Match Controls */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -65,6 +68,8 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+        </PunchProvider>
+        </MatchProvider>
       </main>
     </div>
   )

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Camera, CameraOff, Settings } from "lucide-react"
 import { usePunches } from "@/components/context/PunchContext"
+import { useMatch } from "./context/MatchContext"
 
 export function CameraFeed() {
   // state variables
@@ -36,6 +37,9 @@ export function CameraFeed() {
    //add punch context
    const { addPunch } = usePunches()
 
+   //add match context
+   const { startTimer, stopTimer } = useMatch()
+
   // Existing startCapture function
   async function startCapture(){
     try{
@@ -45,6 +49,11 @@ export function CameraFeed() {
       console.log('Requesting camera permission...')
       const stream = await navigator.mediaDevices.getUserMedia({video: true})
       console.log('Camera stream received:', stream)
+
+      setStatus('Camera On')
+      setIsActive(true)
+
+      startTimer() // Start match timer when camera starts
 
       if (videoRef.current){
         console.log('Setting video srcObject...')
@@ -132,6 +141,8 @@ export function CameraFeed() {
     
     setStatus('Camera Off')
     setIsActive(false)
+
+    stopTimer() // Stop match timer when camera stops
 
     // NEW: Stop sending frames and close WebSocket
     if (intervalRef.current) {

@@ -4,13 +4,14 @@ Date: October 7, 2025
 Description: Analytics dashboard that will pull from the scoring script and display real-time stats.
 
 Updated by: Mariah Falzon
-Date Updated: October 24 2025
-Notes: 
+Date Updated: October 27 2025
+Notes: including reset dashboard from MatchContext
 */
 "use client"
 import { Card } from "@/components/ui/card"
 import { TrendingUp, Target, Zap, Award } from "lucide-react"
 import { usePunches } from "@/components/context/PunchContext"
+import { useMatch } from "@/components/context/MatchContext"
 
 export function AnalyticsDashboard() {
   

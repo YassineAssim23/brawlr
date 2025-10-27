@@ -3,70 +3,59 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Play, Pause, Square, RotateCcw, Timer } from "lucide-react"
+import { RotateCcw, Timer } from "lucide-react"
+import { useMatch } from "@/components/context/MatchContext"
 
 export function MatchControls() {
-  const [isActive, setIsActive] = useState(false)
-  const [currentRound, setCurrentRound] = useState(1)
-  const [timeRemaining, setTimeRemaining] = useState("3:00")
+ const { timeRemaining, resetMatch, setDuration } = useMatch()
+  const [minutes, setMinutes] = useState(3)
 
-  return (
+    // Convert seconds → MM:SS
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return `${m}:${sec.toString().padStart(2, "0")}`
+  }
+
+ return (
     <Card className="p-6 bg-card border-border">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-foreground">Match Controls</h3>
-        <Badge variant="outline" className="text-accent border-accent">
-          ROUND {currentRound}
-        </Badge>
       </div>
 
+      {/* Timer display */}
       <div className="text-center mb-6">
-        <div className="text-4xl font-mono font-bold text-primary mb-2">{timeRemaining}</div>
+        <div className="text-4xl font-mono font-bold text-primary mb-2">
+          {formatTime(timeRemaining)}
+        </div>
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Timer className="h-4 w-4" />
           Time Remaining
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <Button
-          onClick={() => setIsActive(!isActive)}
-          className={isActive ? "bg-accent hover:bg-accent/90" : "bg-primary hover:bg-primary/90"}
-          size="lg"
-        >
-          {isActive ? (
-            <>
-              <Pause className="h-5 w-5 mr-2" />
-              Pause
-            </>
-          ) : (
-            <>
-              <Play className="h-5 w-5 mr-2" />
-              Start
-            </>
-          )}
-        </Button>
-
-        <Button variant="outline" size="lg">
-          <Square className="h-5 w-5 mr-2" />
-          Stop
-        </Button>
+      {/* Duration input */}
+      <div className="flex items-center justify-center gap-2 mb-6">
+        <input
+          type="number"
+          min="1"
+          className="w-20 text-center border border-border rounded-md p-1 bg-background text-foreground"
+          value={minutes}
+          onChange={(e) => {
+            const val = Number(e.target.value)
+            setMinutes(val)
+            setDuration(val * 60)
+          }}
+        />
+        <span className="text-muted-foreground text-sm">min</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentRound(Math.max(1, currentRound - 1))}
-          disabled={currentRound === 1}
-        >
-          Previous Round
-        </Button>
-        <Button variant="outline" onClick={() => setCurrentRound(currentRound + 1)}>
-          Next Round
-        </Button>
-      </div>
-
-      <Button variant="ghost" className="w-full mt-4 text-muted-foreground">
+      {/* Reset button */}
+      <Button
+        onClick={resetMatch}
+        variant="ghost"
+        className="w-full mt-2 text-muted-foreground hover:text-foreground"
+      >
         <RotateCcw className="h-4 w-4 mr-2" />
         Reset Match
       </Button>
