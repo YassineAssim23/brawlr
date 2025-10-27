@@ -17,10 +17,8 @@ Uses Modal Popup for better user experience and a game like experience
 //Arrat of daily challenges for testing purposes
 const challenges = [
     "Throw 50 punches in 2 minutes 🥊",
-    "Focus on head movement for 1 round 🧠",
     "Only jab for 60 seconds 💥",
-    "Alternate between left and right hooks for 3 rounds 🔄",
-    "Keep perfect guard while dodging punches 🛡️",
+    "Alternate between left and right hooks for 3 minutes 🔄"
 ]
 
 export const DailyChallengeButton = () => {
@@ -38,9 +36,18 @@ export const DailyChallengeButton = () => {
     return (
         <div>
             <Button
-            //When button is clicked the randomizer function is called and the modal is shown
+                variant="default"
+                className="
+   !bg-brawlr-red
+    !text-white
+hover:shadow-[0_0_35px_rgba(0,255,255,1)]
+    hover:scale-110 
+    transition-all duration-300 
+    rounded-xl 
+  "
+                //When button is clicked the randomizer function is called and the modal is shown
                 onClick={handleDailyChallenge}
-                className="px-6 py-3 text-lg font-semibold" >
+            >
                 🔥 Daily Challenge
             </Button>
             {/* The Daily Challenge Modal is called which is the Alert Dialog */}

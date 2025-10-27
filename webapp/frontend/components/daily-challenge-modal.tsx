@@ -12,12 +12,23 @@ Uses Modal Popup for better user experience and a game like experience has more 
 
 TODO: Add Animations and do daily challenge fetching from backend
 
+**Used AI TO help with CSS Styling Class Names and button hover effects**
+
 */
 
 export function DailyChallengeModal({ open, onClose, challenge }: { open: boolean; onClose: () => void; challenge: string }) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent
+         className="
+    bg-[#111417]
+    text-brawlr-text
+    border-2 border-brawlr-blue
+    rounded-2xl
+    shadow-[0_0_30px_rgba(0,255,255,0.6)]
+    p-6
+    transition-all duration-300
+  ">
         <DialogHeader>
           <DialogTitle>🥊 Your Daily Challenge</DialogTitle>
         </DialogHeader>

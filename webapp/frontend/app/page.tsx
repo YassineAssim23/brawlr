@@ -15,6 +15,7 @@ import { VideoUpload } from "@/components/video-upload"
 import { Button } from "@/components/ui/button"
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { DailyChallengeButton } from "@/components/daily-challenge-button";
+import { LeaderboardButton } from "@/components/leaderboard-button"
 
 export default function HomePage() {
 
@@ -35,25 +36,35 @@ export default function HomePage() {
 
         {/* Centered Buttons */}
         <div className="flex justify-center items-center gap-8 mb-14">
-          <Button className="px-6 py-3 text-lg font-semibold">🏆 Leaderboard</Button>
-          <DailyChallengeButton/>
- 
+          <LeaderboardButton/>
+          <DailyChallengeButton />
+
         </div>
-        {/* Main Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10 items-start">
-          {/* Left Column - Match Controls & Related Components */}
-          <div className="flex flex-col space-y-6 w-full">
-            <MatchControls />
-            <AnalyticsDashboard />
+        <div className="flex flex-col lg:flex-col gap-10">
+          {/* Top Row - Video Upload & Match Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="flex justify-center">
+              <div className="w-full max-w-md">
+                <VideoUpload />
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <div className="w-full max-w-md">
+                <MatchControls />
+              </div>
+            </div>
           </div>
 
-          {/* Right Column - Camera Feed */}
-        <div className="flex flex-col space-y-6 w-full">
-            <CameraFeed />
-              <VideoUpload />
+          {/* Bottom Row - Camera and Dashboard */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+            <div className="flex justify-center">
+              <CameraFeed />
+            </div>
+            <div className="flex justify-center">
+              <AnalyticsDashboard />
+            </div>
           </div>
         </div>
-
       </main>
     </div>
   )
