@@ -23,6 +23,7 @@ python-dotenv>=1.0.0
 jupyter>=1.0.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
+roboflow>=1.2.11
 tensorboard>=2.13.0
 # roboflow>=1.2.10
 # Backend specific
@@ -31,9 +32,3 @@ fastapi>=0.104.0
 uvicorn>=0.24.0
 websockets>=12.0
 python-multipart>=0.0.6
-
-#npm installs for CSS 
-tailwindcss
-@tailwindcss/postcss
-autoprefixer
-framer-motion
