@@ -70,37 +70,36 @@ async def health():
 @app.post("/upload-video")
 async def upload_video(video: UploadFile = File(...)):
     """
-    Upload a video file and process it through YOLO to count punches
+    Upload a video file, run YOLO full-video processing, and return structured punch counts.
     """
     try:
         # Validate file type
         if not video.content_type.startswith('video/'):
             raise HTTPException(status_code=400, detail="File must be a video")
         
-        # Create temporary file to save uploaded video
+        # Save uploaded video temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{video.filename.split('.')[-1]}") as temp_file:
-            # Write uploaded video to temporary file
             content = await video.read()
             temp_file.write(content)
             temp_file_path = temp_file.name
-        
+
         try:
-            # Process video through YOLO
-            print(f"Processing video: {video.filename}")
-            print(f"Video size: {len(content)} bytes")
-            punch_counts = yolo_processor.process_video(temp_file_path)
+            print(f"🎥 Processing uploaded video: {video.filename} ({len(content)} bytes)")
             
+            # Use the new unified auto-processing method
+            results = yolo_processor.process_video_auto(temp_file_path, device="cpu")
+
             return {
                 "success": True,
                 "filename": video.filename,
-                "punchCounts": punch_counts
+                "results": results,  # contains { "videoType", "punchCounts": {...} }
             }
-            
+
         finally:
             # Clean up temporary file
             if os.path.exists(temp_file_path):
                 os.unlink(temp_file_path)
-                
+
     except Exception as e:
-        print(f"Video processing error: {e}")
+        print(f"❌ Video processing error: {e}")
         raise HTTPException(status_code=500, detail=f"Video processing failed: {str(e)}")
