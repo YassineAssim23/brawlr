@@ -118,7 +118,14 @@ export function VideoUpload() {
   }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full
+    bg-[#111417]
+    border-2 border-brawlr-red 
+    rounded-xl
+    gap-6 
+    transition-all duration-300
+    hover:shadow-[0_0_35px_rgba(0,255,255,.8)]
+    hover:scale-[1.02]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileVideo className="h-5 w-5" />
@@ -162,7 +169,14 @@ export function VideoUpload() {
                 </div>
                 <Button 
                   onClick={() => fileInputRef.current?.click()}
-                  variant="outline"
+                       className="
+                brawlr-red
+                border-2 border-brawlr-red
+                text-white
+               hover:scale-110 
+      transition-all duration-300 
+      rounded-xl
+                "
                 >
                   Choose Video File
                 </Button>

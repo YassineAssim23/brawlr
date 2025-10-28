@@ -19,6 +19,8 @@ interface MatchContextType {
   setDuration: (seconds: number) => void
   //trigger analytics reset function can be added here
   resetAnalytics: number
+  //ending of the timer trigger can be added here
+  onMatchEnd: (callback: () => void) => void
 }
 
 const MatchContext = createContext<MatchContextType | undefined>(undefined)
@@ -29,16 +31,31 @@ export function MatchProvider({ children }: { children: ReactNode }) {
     const [timeRemaining, setTimeRemaining] = useState(duration)
     //reset counter
     const [resetAnalytics, setResetAnalytics] = useState(0)
+    //callback for match end
+    const [matchEndCallbacks, setMatchEndCallbacks] = useState<(() => void)[]>([])
+
+    //Register match end callbacks
+    const onMatchEnd = (callback: () => void) => {
+        setMatchEndCallbacks((prev) => [...prev, callback])
+    }
 
     //Logic to handle timer countdown
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null
+
         if (isRunning && timeRemaining > 0) {
             interval = setInterval(() => {
                 setTimeRemaining((prev) => prev - 1)
             }, 1000)
-        } else if (timeRemaining === 0) {
+        } else if (timeRemaining === 0 && isRunning) {
             setIsRunning(false)
+
+            //Play sound for end of match
+            const audio = new Audio('/sounds/match-end.mp3')
+            audio.play().catch(() => console.log("Audio play failed"))
+
+            //Trigger all registered match end callbacks
+            matchEndCallbacks.forEach((callback) => callback())
         }
         return () => {
             if (interval) clearInterval(interval)
@@ -62,7 +79,7 @@ export function MatchProvider({ children }: { children: ReactNode }) {
 }
 
  return (
-    <MatchContext.Provider value={{ isRunning, timeRemaining, startTimer, stopTimer, resetMatch, setDuration, resetAnalytics }}>
+    <MatchContext.Provider value={{ isRunning, timeRemaining, startTimer, stopTimer, resetMatch, setDuration, resetAnalytics, onMatchEnd}}>
       {children}
     </MatchContext.Provider>
   )

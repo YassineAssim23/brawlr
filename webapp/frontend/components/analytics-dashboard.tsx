@@ -30,7 +30,14 @@ const { stats } = usePunches()
   return (
     <div className="space-y-4">
       {statItems.map((stat, index) => (
-        <Card key={index} className="p-4 bg-card border-border w-full">
+        <Card key={index} className="p-4 bg-card border-border w-full
+        bg-[#111417]
+    border-2 border-brawlr-red 
+    rounded-xl
+    gap-4
+    transition-all duration-300
+    hover:shadow-[0_0_35px_rgba(0,255,255,.5)]
+    hover:scale-[1.02]">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>

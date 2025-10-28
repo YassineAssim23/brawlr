@@ -10,7 +10,7 @@ Notes: added punch context to update punch stats upon detection
 
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, use, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Camera, CameraOff, Settings } from "lucide-react"
@@ -38,7 +38,15 @@ export function CameraFeed() {
    const { addPunch } = usePunches()
 
    //add match context
-   const { startTimer, stopTimer } = useMatch()
+   const { startTimer, stopTimer, onMatchEnd } = useMatch()
+
+   //use match end to stop camera
+   useEffect(() => {
+     onMatchEnd(() => {
+        console.log("⏰ Match ended - stopping camera capture")
+       stopCapture()
+     })
+   }, [onMatchEnd])
 
   // Existing startCapture function
   async function startCapture(){
@@ -192,12 +200,40 @@ export function CameraFeed() {
   }
 
   return (
-    <Card className="p-6 bg-card border-border h-full flex flex-col">
+    <Card className="p-6 bg-card border-border h-full flex flex-col
+    w-full
+    bg-[#111417]
+    border-2 border-brawlr-red 
+    rounded-xl
+    gap-6 
+    transition-all duration-300
+    hover:shadow-[0_0_35px_rgba(0,255,255,.5)]
+    hover:scale-[1.02]
+    ">
+      {/* header row */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-semibold text-foreground">Live Camera Feed</h3>
+   
+
+      {/* Start and Stop Button for Top Right */}
+      
+        <Button
+          onClick={isActive ? stopCapture : startCapture}
+          className={`
+      !bg-brawlr-red 
+      !text-white 
+      hover:scale-110 
+      transition-all duration-300 
+      rounded-xl
+      ${isActive ? '!bg-destructive hover:bg-destructive/90' : '!bg-brawlr-red'}
+    `}
+          size="lg"
+        >
+          {isActive ? "Stop Training" : "Start Training"}
+        </Button>
       </div>
 
-      {/* NEW: Show connection status */}
+      {/* Show connection status */}
       <div className="mb-4">
         <p className="text-sm text-muted-foreground">
           Camera: {status} | Backend: {isConnected ? 'Connected' : 'Disconnected'}
@@ -228,15 +264,7 @@ export function CameraFeed() {
       {/* NEW: Hidden canvas for frame capture */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      <div className="flex gap-3">
-        <Button
-          onClick={isActive ? stopCapture : startCapture}
-          className={isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
-          size="lg"
-        >
-          {isActive ? "Stop Training" : "Start Training"}
-        </Button>
-      </div>
+
     </Card>
   )
 }

@@ -27,10 +27,10 @@ export default function HomePage() {
       <main className="container mx-auto px-6 py-12">
         {/* Title Section */}
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-foreground mb-2 text-balance">
+          <h2 className="text-3xl font-bold text-foreground mb-2">
             Let's Get Ready To Rumble!
           </h2>
-          <p className="text-muted-foreground text-pretty">
+          <p className="text-muted-foreground">
             Real-time boxing session analysis and training game powered by AI computer vision
           </p>
         </div>
@@ -43,31 +43,32 @@ export default function HomePage() {
 
         <MatchProvider>
           <PunchProvider>
-        <div className="flex flex-col lg:flex-col gap-10">
-          {/* Top Row - Video Upload & Match Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="flex justify-center">
-              <div className="w-full max-w-md">
+            <div className = "mb-10">
+              <MatchControls />
+            </div>
+
+            {/* Camera Feed (2/3) and Analytics (1/3) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
+              {/* Camera Feed - wider (2 columns on large screens) */}
+              <div className="lg:col-span-2 flex justify-center">
+                <div className="w-full">
+                  <CameraFeed />
+                </div>
+              </div>
+                        {/* Analytics Dashboard - narrower */}
+              <div className="lg:col-span-1 flex justify-center">
+                <div className="w-full">
+                  <AnalyticsDashboard />
+                </div>
+              </div>
+            </div>
+          
+                {/* Video Upload Below */}
+            <div className="flex justify-center mt-12">
+              <div className="w-full lg:w-2/3">
                 <VideoUpload />
               </div>
             </div>
-            <div className="flex justify-center">
-              <div className="w-full max-w-md">
-                <MatchControls />
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Row - Camera and Dashboard */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-            <div className="flex justify-center">
-              <CameraFeed />
-            </div>
-            <div className="flex justify-center">
-              <AnalyticsDashboard />
-            </div>
-          </div>
-        </div>
         </PunchProvider>
         </MatchProvider>
       </main>
