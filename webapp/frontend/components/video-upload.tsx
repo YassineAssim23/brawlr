@@ -18,8 +18,9 @@ import { Upload, FileVideo, CheckCircle, AlertCircle } from "lucide-react"
 interface UploadResult {
   success: boolean
   punchCounts?: {
-    jab: number
-    cross: number
+    // jab: number
+    // cross: number
+    straight: number
     hook: number
     uppercut: number
     total: number
@@ -153,7 +154,7 @@ export function VideoUpload() {
               <div className="space-y-4">
                 <Upload className="h-12 w-12 text-gray-400 mx-auto" />
                 <div>
-                  <p className="text-lg font-medium text-gray-900">
+                  <p className="text-lg font-medium text-white-900">
                     Drop your video here, or click to browse
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
@@ -162,7 +163,6 @@ export function VideoUpload() {
                 </div>
                 <Button 
                   onClick={() => fileInputRef.current?.click()}
-                  variant="outline"
                 >
                   Choose Video File
                 </Button>
@@ -179,7 +179,7 @@ export function VideoUpload() {
         )}
 
         {/* Results */}
-        {result && (
+        {result && (!result || !result.success) && (
           <div className="text-xs text-gray-500 mb-2">
             Debug: result exists = {result ? 'true' : 'false'}, success = {result?.success ? 'true' : 'false'}
           </div>
@@ -195,17 +195,23 @@ export function VideoUpload() {
                 
                 {result.punchCounts && (
                   <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
+                    {/* <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600">
                         {result.punchCounts.jab}
                       </div>
                       <div className="text-sm text-gray-600">Jabs</div>
-                    </div>
-                    <div className="text-center">
+                    </div> */}
+                    {/* <div className="text-center">
                       <div className="text-2xl font-bold text-red-600">
                         {result.punchCounts.cross}
                       </div>
                       <div className="text-sm text-gray-600">Crosses</div>
+                    </div> */}
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {result.punchCounts.straight}
+                      </div>
+                      <div className="text-sm text-gray-600">Straights</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">
@@ -241,7 +247,8 @@ export function VideoUpload() {
               </p>
             )}
             
-            <Button onClick={resetUpload} variant="outline" className="w-full">
+            <Button onClick={resetUpload} className="w-full">
+            {/* variant="outline" */}
               Upload Another Video
             </Button>
           </div>

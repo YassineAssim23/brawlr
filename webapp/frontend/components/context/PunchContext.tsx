@@ -57,8 +57,9 @@ export const PunchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resetPunches = () => {
     setStats({
       total: 0,
-      jab: 0,
-      cross: 0,
+      // jab: 0,
+      // cross: 0,
+      straight: 0, // ADDED STRAIGHT
       hook: 0,
       uppercut: 0,
     })
