@@ -5,7 +5,11 @@ Description: Analytics dashboard that will pull from the scoring script and disp
 
 Updated by: Mariah Falzon
 Date Updated: October 27 2025
-Notes: including reset dashboard from MatchContext
+Notes: including reset dashboard from MatchContext.
+
+Updated by: Toufiq Charania
+Date Updated: October 27, 2025
+Notes: Removed jab and cross from the punch types and added straight to the punch types.
 */
 "use client"
 import { Card } from "@/components/ui/card"

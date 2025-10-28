@@ -1,9 +1,10 @@
 import base64
 import time
-import cv2
+import cv2  # type: ignore
 import numpy as np
 from io import BytesIO
 from PIL import Image
+import tempfile
 
 def base64_to_image(base64_data):
     """
@@ -98,3 +99,71 @@ def preprocess_image(image_array):
         image_array = cv2.resize(image_array, (new_width, new_height))
     
     return image_array
+
+def preprocess_video(video_path, max_resolution=640):
+    """
+    Preprocess video for faster analysis
+    
+    What this does:
+    - Resizes video to max_resolution for faster processing
+    - Compresses video to reduce file size
+    - Creates optimized temporary file
+    
+    Args:
+        video_path: Path to input video file
+        max_resolution: Maximum resolution (default 640px)
+    
+    Returns:
+        str: Path to preprocessed video file
+    """
+    try:
+        # Create temporary file for preprocessed video
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+        temp_path = temp_file.name
+        temp_file.close()
+        
+        # Open input video
+        cap = cv2.VideoCapture(video_path)
+        
+        # Get video properties
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        print(f"Original video: {width}x{height} @ {fps}fps")
+        
+        # Calculate new dimensions maintaining aspect ratio
+        if width > height:
+            new_width = min(max_resolution, width)
+            new_height = int((height * new_width) / width)
+        else:
+            new_height = min(max_resolution, height)
+            new_width = int((width * new_height) / height)
+        
+        print(f"Preprocessed video: {new_width}x{new_height} @ {fps}fps")
+        
+        # Set up video writer
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(temp_path, fourcc, fps, (new_width, new_height))
+        
+        frame_count = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            # Resize frame
+            resized_frame = cv2.resize(frame, (new_width, new_height))
+            out.write(resized_frame)
+            frame_count += 1
+        
+        # Clean up
+        cap.release()
+        out.release()
+        
+        print(f"Video preprocessed: {frame_count} frames")
+        return temp_path
+        
+    except Exception as e:
+        print(f"Error preprocessing video: {e}")
+        return video_path  # Return original if preprocessing fails

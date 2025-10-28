@@ -5,7 +5,11 @@ Description: Context to manage punch statistics across the application.
 
 Updated by: Mariah
 Date Updated: October 27, 2025
-Notes: Added MatchContext reset trigger integration from the match controls 
+Notes: Added MatchContext reset trigger integration from the match controls.
+
+Updated by: Toufiq Charania
+Date Updated: October 27, 2025
+Notes: Removed jab and cross from the punch types and added straight to the punch types.
 */
 "use client"
 
@@ -57,8 +61,8 @@ export const PunchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resetPunches = () => {
     setStats({
       total: 0,
-      //jab: 0,
-      //cross: 0,
+      // jab: 0,
+      // cross: 0,
       straight: 0, // ADDED STRAIGHT
       hook: 0,
       uppercut: 0,
