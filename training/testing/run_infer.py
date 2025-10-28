@@ -26,12 +26,18 @@ def main():
     print(f"Device: {device}")
     print(f"Source exists: {Path(source).exists()}")
     
-    # Adjusted to current repo layout: model is under webapp/backend/models/best.pt
-    model_path = repo_root / "webapp" / "backend" / "models" / "best.pt"
-
+    # Use new trained model (yassinesmodel.pt) or fallback to old models
+    model_path = repo_root / "webapp" / "backend" / "models" / "yassinesmodel.pt"
+    
     if not model_path.exists():
-        print(f"Model not found: {model_path}")
+        # Fallback to old model
+        model_path = repo_root / "webapp" / "backend" / "models" / "best.pt"
+        
+    if not model_path.exists():
+        print(f"Model not found. Tried yassinev2.pt and best.pt")
         return
+    
+    print(f"Using model: {model_path.name}")
 
     model = YOLO(str(model_path))
     

@@ -30,7 +30,7 @@ class YOLOProcessor:
         if model_path is None:
             # Find model file relative to this file
             current_dir = Path(__file__).parent
-            model_path = current_dir / "models" / "best_straight_v1.pt" # CHANGED MODEL FROM best.pt
+            model_path = current_dir / "models" / "yassinesmodel.pt" # CHANGED MODEL FROM best.pt
         
         print(f"Loading YOLO model from: {model_path}")
         
@@ -41,6 +41,10 @@ class YOLOProcessor:
             
             # Set confidence threshold (configurable to catch more detections on stock videos)
             self.confidence_threshold = confidence_threshold
+            
+            # Cooldown tracking for live stream (prevent counting retraction as multiple punches)
+            self.last_punch_frame_time = None
+            self.punch_cooldown_frames = 25  # ~0.8 seconds at 30fps - ignore new punches during this time
             
         except Exception as e:
             print(f"Error loading YOLO model: {e}")
@@ -54,6 +58,7 @@ class YOLOProcessor:
         - Converts base64 to image
         - Runs YOLO inference
         - Parses results for punch detection
+        - Applies cooldown to prevent counting retraction as multiple punches
         - Returns formatted result
         
         Args:
@@ -84,7 +89,27 @@ class YOLOProcessor:
             # Parse results for punch detection
             punch_result = self._parse_results(results)
             
-            return punch_result
+            # Apply cooldown to prevent counting retraction as multiple punches
+            import time
+            current_time = time.time()
+            
+            if punch_result is not None:
+                # Check if enough time has passed since last punch
+                if self.last_punch_frame_time is not None:
+                    time_since_last = current_time - self.last_punch_frame_time
+                    # Convert cooldown frames to seconds (assuming ~30fps)
+                    cooldown_seconds = self.punch_cooldown_frames / 30.0
+                    
+                    if time_since_last < cooldown_seconds:
+                        # Still in cooldown - ignore this detection (likely retraction)
+                        print(f"Punch detected but in cooldown ({time_since_last:.2f}s < {cooldown_seconds:.2f}s) - ignoring")
+                        return None
+                
+                # New punch detected - update last punch time
+                self.last_punch_frame_time = current_time
+                return punch_result
+            
+            return None
             
         except Exception as e:
             print(f"Error processing frame: {e}")
@@ -134,12 +159,11 @@ class YOLOProcessor:
                 # Debug: Collect all detections
                 all_detections.append(f"{class_name}({confidence:.2f})")
                 
-                # Check if this is a punch type
-                # if class_name in ["jab", "cross", "hook", "uppercut"]:
-                if class_name in ["straight", "hook", "uppercut"]: # CHANGED TO STRAIGHT
+                # Only care about punch detection, not punch type
+                if class_name == "punch":
                     if confidence > best_confidence:
                         best_confidence = confidence
-                        best_punch_type = class_name
+                        best_punch_type = "punch"
             
             # Debug: Print all detections (limit to avoid spam)
             if len(all_detections) > 0:
@@ -179,13 +203,9 @@ class YOLOProcessor:
         try:
             print(f"Processing video: {video_path}")
             
-            # Initialize punch counters
+            # Initialize punch counters (2-class model: just "punch")
             punch_counts = {
-                # "jab": 0,
-                # "cross": 0,
-                "straight": 0, # ADDED STRAIGHT
-                "hook": 0,
-                "uppercut": 0,
+                "punch": 0,
                 "total": 0
             }
             
@@ -200,8 +220,12 @@ class YOLOProcessor:
             # Cluster analysis for punch counting
             current_cluster_punches = []
             in_cluster = False
+            frame_number = 0
+            last_punch_frame = -999  # Track last frame where we counted a punch
+            cooldown_frames = 30  # ~1 second at 30fps - ignore new punches during this time
             
             for result in results:
+                frame_number += 1
                 boxes = result.boxes
                 frame_has_punch = False
                 frame_punch_type = None
@@ -212,11 +236,10 @@ class YOLOProcessor:
                         confidence = float(box.conf[0])
                         class_name = self.model.names[class_id]
                         
-                        # Check if this is a punch type
-                        # if class_name in ["jab", "cross", "hook", "uppercut"]:
-                        if class_name in ["straight", "hook", "uppercut"]: # ADDED STRAIGHT
+                        # Only care about punch detection, not punch type
+                        if class_name == "punch":
                             frame_has_punch = True
-                            frame_punch_type = class_name
+                            frame_punch_type = "punch"
                             break  # Take the first punch detection in this frame
                 
                 # Cluster logic (based on count_punches_v5.py)
@@ -232,38 +255,41 @@ class YOLOProcessor:
                     
                     # Only count if cluster has enough frames (minimum 8)
                     if len(current_cluster_punches) >= 8:
-                        # Count frame types in cluster
-                        # jab_frames = current_cluster_punches.count("jab")
-                        # cross_frames = current_cluster_punches.count("cross")
-                        straight_frames = current_cluster_punches.count("straight") # ADDED STRAIGHT
-                        hook_frames = current_cluster_punches.count("hook")
-                        uppercut_frames = current_cluster_punches.count("uppercut")
+                        # 2-class model: just count "punch" frames
+                        punch_frames = current_cluster_punches.count("punch")
                         
-                        # Find majority punch type
-                        punch_frame_counts = {
-                            # "jab": jab_frames,
-                            # "cross": cross_frames,
-                            "straight": straight_frames,
-                            "hook": hook_frames,
-                            "uppercut": uppercut_frames
-                        }
-                        
-                        majority_punch = max(punch_frame_counts, key=punch_frame_counts.get)
-                        majority_count = punch_frame_counts[majority_punch]
-                        
-                        # Only count if majority has at least 6 frames
-                        if majority_count >= 6:
-                            punch_counts[majority_punch] += 1
-                            punch_counts["total"] += 1
-                            print(f"Counted 1 {majority_punch} punch")
+                        # Only count if at least 6 frames detected punch
+                        if punch_frames >= 6:
+                            # Check cooldown - don't count if too close to last punch (prevents counting retraction)
+                            frames_since_last = frame_number - last_punch_frame
+                            
+                            if frames_since_last >= cooldown_frames:
+                                punch_counts["punch"] += 1
+                                punch_counts["total"] += 1
+                                last_punch_frame = frame_number
+                                print(f"Counted 1 punch (frame {frame_number}, {frames_since_last} frames since last)")
+                            else:
+                                print(f"Punch detected but too soon after last ({frames_since_last} < {cooldown_frames} frames) - likely retraction, ignoring")
                         else:
-                            print(f"No punch type had 6+ frames - ignoring cluster")
+                            print(f"Not enough punch detections (had {punch_frames}, need 6+) - ignoring cluster")
                     else:
                         print(f"Cluster too short ({len(current_cluster_punches)} frames) - ignoring")
                     
                     # Reset for next cluster
                     current_cluster_punches = []
                     in_cluster = False
+            
+            # Handle case where video ends while still in a cluster
+            if in_cluster and len(current_cluster_punches) > 0:
+                print(f"Video ended while in cluster. Punches: {current_cluster_punches}")
+                if len(current_cluster_punches) >= 8:
+                    punch_frames = current_cluster_punches.count("punch")
+                    if punch_frames >= 6:
+                        frames_since_last = frame_number - last_punch_frame
+                        if frames_since_last >= cooldown_frames:
+                            punch_counts["punch"] += 1
+                            punch_counts["total"] += 1
+                            print(f"Counted final punch (frame {frame_number})")
             
             print(f"Video processing complete. Punch counts: {punch_counts}")
             return punch_counts

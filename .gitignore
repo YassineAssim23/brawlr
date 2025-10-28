@@ -19,8 +19,8 @@ yarn-error.log*
 *.pt
 *.pth
 *.pkl
-# Exception: allow our trained model
-!desktop/backend/models/best.pt
+# Exception: allow our trained model in webapp
+!webapp/backend/models/*.pt
 
 # Data files
 training/videos/*
@@ -31,6 +31,13 @@ sessions/
 *.MOV
 *.MP4
 inference_log.txt
+
+# Training datasets and outputs (HUGE - thousands of images)
+datasets/
+runs/
+training/data/
+training/merged_datasets/
+model_backups/
 
 # OS
 .DS_Store
