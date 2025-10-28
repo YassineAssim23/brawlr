@@ -16,16 +16,23 @@ import { Settings, User, Menu } from "lucide-react"
 
 export function Header() {
   return (
-    <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+  <header className="border-b border-border bg-card/50 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">AI</span>
-              </div>
-              <h1 className="text-xl font-bold text-foreground">brawlr</h1>
-            </div>
+          {/* Left side: Logo + Title */}
+          <div className="flex items-center gap-3">
+            <img
+              src="/brawlr.png"
+              alt="Brawlr Logo"
+              className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
+            />
+            <h1  className="
+                text-4xl font-extrabold text-foreground tracking-wide 
+                transition-all duration-300 group-hover:text-brawlr-red
+                font-title
+              ">
+              brawlr
+            </h1>
           </div>
 
           <nav className="hidden md:flex items-center gap-6">

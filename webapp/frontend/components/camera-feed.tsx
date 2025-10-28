@@ -17,6 +17,7 @@ import { Camera, CameraOff, Settings } from "lucide-react"
 import { usePunches } from "@/components/context/PunchContext"
 import { useMatch } from "./context/MatchContext"
 
+
 export function CameraFeed() {
   // state variables
   const [isActive, setIsActive] = useState(false)
@@ -39,6 +40,10 @@ export function CameraFeed() {
 
    //add match context
    const { startTimer, stopTimer, onMatchEnd } = useMatch()
+
+  //  useEffect(() => {
+  //   registerCameraStart(startCapture)
+  //  }, [])
 
    //use match end to stop camera
    useEffect(() => {

@@ -16,10 +16,6 @@ export default {
           text: "#F5F5F5",
         },
       },
-      fontFamily: {
-        display: ["'Orbitron'", "sans-serif"],
-        body: ["'Rajdhani'", "sans-serif"],
-      },
     },
   },
   plugins: [],

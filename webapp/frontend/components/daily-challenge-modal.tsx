@@ -1,6 +1,7 @@
 "use client"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { useMatch } from "./context/MatchContext";
 
 /*
 Created by: Mariah Falzon
@@ -17,6 +18,14 @@ TODO: Add Animations and do daily challenge fetching from backend
 */
 
 export function DailyChallengeModal({ open, onClose, challenge }: { open: boolean; onClose: () => void; challenge: string }) {
+  
+// const { triggerCameraStart } = useMatch();
+
+// const handleStartTraining = () => {
+//   onClose(); // Close the modal
+//   triggerCameraStart!(); // The ! tells TypeScript that this will never be undefined
+// };
+  
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent

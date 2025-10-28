@@ -9,9 +9,10 @@ Notes: including reset dashboard from MatchContext
 */
 "use client"
 import { Card } from "@/components/ui/card"
-import { TrendingUp, Target, Zap, Award } from "lucide-react"
+import { TrendingUp, Target, Zap, Award, CornerDownRight, ArrowBigUpDash } from "lucide-react"
 import { usePunches } from "@/components/context/PunchContext"
 import { useMatch } from "@/components/context/MatchContext"
+
 
 export function AnalyticsDashboard() {
   
@@ -21,8 +22,8 @@ const { stats } = usePunches()
     // { label: "Jabs Landed", value: stats.jab, icon: TrendingUp, color: "text-primary" },
     // { label: "Crosses Landed", value: stats.cross, icon: Award, color: "text-secondary" },
     { label: "Straights Landed", value: stats.straight, icon: TrendingUp, color: "text-primary" }, // ADDED STRAIGHT
-    { label: "Hooks Landed", value: stats.hook, icon: Zap, color: "text-destructive" },
-    { label: "Uppercuts Landed", value: stats.uppercut, icon: Zap, color: "text-destructive" },
+    { label: "Hooks Landed", value: stats.hook, icon: CornerDownRight, color: "text-destructive" },
+    { label: "Uppercuts Landed", value: stats.uppercut, icon: ArrowBigUpDash, color: "text-destructive" },
   ]
 
   

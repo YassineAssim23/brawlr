@@ -30,18 +30,19 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold text-foreground mb-2">
             Let's Get Ready To Rumble!
           </h2>
+          
           <p className="text-muted-foreground">
             Real-time boxing session analysis and training game powered by AI computer vision
           </p>
         </div>
-
+     <MatchProvider>
         {/* Centered Buttons */}
         <div className="flex justify-center items-center gap-8 mb-14">
           <LeaderboardButton/>
           <DailyChallengeButton />
         </div>
 
-        <MatchProvider>
+   
           <PunchProvider>
             <div className = "mb-10">
               <MatchControls />

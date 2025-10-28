@@ -5,10 +5,9 @@ Context interface for use of match controls across components
 
 */
 
-
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react"
 
 interface MatchContextType {
   isRunning: boolean
@@ -21,6 +20,10 @@ interface MatchContextType {
   resetAnalytics: number
   //ending of the timer trigger can be added here
   onMatchEnd: (callback: () => void) => void
+
+  //register camera for daily start training
+  // registerCameraStart: (fn: () => void) => void
+  // triggerCameraStart: () => void
 }
 
 const MatchContext = createContext<MatchContextType | undefined>(undefined)
@@ -34,33 +37,56 @@ export function MatchProvider({ children }: { children: ReactNode }) {
     //callback for match end
     const [matchEndCallbacks, setMatchEndCallbacks] = useState<(() => void)[]>([])
 
+    
+
     //Register match end callbacks
     const onMatchEnd = (callback: () => void) => {
         setMatchEndCallbacks((prev) => [...prev, callback])
     }
 
+  //   //register the start of camera for daily challenge autostart
+  //   const cameraStartRef = useRef<(() => void) | null>(null)
+
+  //   const registerCameraStart = (fn: () => void) => {
+  //       cameraStartRef.current = fn
+  //   }
+
+  // const triggerCameraStart = () => {
+  //   if (cameraStartRef.current) {
+  //     cameraStartRef.current()
+  //   } else {
+  //     console.warn("No camera start function registered yet")
+  //   }
+  // }
+
     //Logic to handle timer countdown
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null
 
-        if (isRunning && timeRemaining > 0) {
-            interval = setInterval(() => {
-                setTimeRemaining((prev) => prev - 1)
-            }, 1000)
-        } else if (timeRemaining === 0 && isRunning) {
-            setIsRunning(false)
+    if (isRunning && timeRemaining > 0) {
+    interval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          // play sound **immediately** as it hits 0
+          const audio = new Audio("/sounds/match-end.mp3")
+          audio.play().catch(() => console.log("Audio play failed"))
 
-            //Play sound for end of match
-            const audio = new Audio('/sounds/match-end.mp3')
-            audio.play().catch(() => console.log("Audio play failed"))
+          // stop the timer instantly
+          setIsRunning(false)
 
-            //Trigger all registered match end callbacks
-            matchEndCallbacks.forEach((callback) => callback())
+          // trigger match end callbacks
+          matchEndCallbacks.forEach((cb) => cb())
+
+          return 0
         }
+        return prev - 1
+      })
+    }, 1000)
+  }
         return () => {
             if (interval) clearInterval(interval)
         }
-    }, [isRunning, timeRemaining])
+    }, [isRunning])
 
     //Sync reset with duration changes
     useEffect(() => setTimeRemaining(duration), [duration])
@@ -84,6 +110,7 @@ export function MatchProvider({ children }: { children: ReactNode }) {
     </MatchContext.Provider>
   )
 }
+
 
 export function useMatch() {
   const context = useContext(MatchContext)
