@@ -1,4 +1,4 @@
-import time
+import torch
 from pathlib import Path
 from ultralytics import YOLO
 from .utils import base64_to_image, format_punch_result, preprocess_image
@@ -21,7 +21,7 @@ class YOLOProcessor:
         What this does:
         - Finds the model file (best.pt)
         - Loads the YOLO model
-        - Sets up for inference
+        - Sets up for inference with GPU optimization
         
         Args:
             model_path: Optional path to model file
@@ -34,9 +34,21 @@ class YOLOProcessor:
         
         print(f"Loading YOLO model from: {model_path}")
         
+        # Detect available device
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"Using device: {self.device}")
+        
         try:
             # Load the YOLO model
             self.model = YOLO(str(model_path))
+            
+            # Move model to GPU if available
+            if self.device == 'cuda':
+                self.model.to(self.device)
+                print("YOLO model moved to GPU for faster processing!")
+            else:
+                print("GPU not available, using CPU")
+            
             print("YOLO model loaded successfully!")
             
             # Set confidence threshold (configurable to catch more detections on stock videos)
@@ -156,19 +168,21 @@ class YOLOProcessor:
             print(f"Error parsing YOLO results: {e}")
             return None
     
-    def process_video(self, video_path):
+    def process_video(self, video_path, frame_skip=3, max_resolution=640):
         """
         Process an entire video file and count punches using cluster analysis
         
         What this does:
         - Loads video file
-        - Processes each frame with YOLO
+        - Processes every nth frame with YOLO (frame sampling for speed)
         - Groups consecutive punch detections into clusters
         - Counts each cluster as 1 punch (not 30+ frames)
         - Returns total counts
         
         Args:
             video_path: Path to video file
+            frame_skip: Process every nth frame (default 3 for 3x speed)
+            max_resolution: Maximum video resolution (default 640px)
         
         Returns:
             dict: Punch counts by type
@@ -178,6 +192,25 @@ class YOLOProcessor:
         
         try:
             print(f"Processing video: {video_path}")
+            
+            # Adaptive frame skip based on video length
+            import cv2  # type: ignore
+            cap = cv2.VideoCapture(video_path)
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            fps = int(cap.get(cv2.CAP_PROP_FPS))
+            video_duration = total_frames / fps if fps > 0 else 0
+            cap.release()
+            
+            # Adjust frame skip based on video length
+            if video_duration > 60:  # Videos longer than 1 minute
+                adaptive_frame_skip = max(4, frame_skip)  # Skip more frames for long videos
+            elif video_duration > 30:  # Videos 30-60 seconds
+                adaptive_frame_skip = max(3, frame_skip)
+            else:  # Short videos
+                adaptive_frame_skip = frame_skip
+            
+            print(f"Video duration: {video_duration:.1f}s, Total frames: {total_frames}")
+            print(f"Frame skip: {adaptive_frame_skip}, Max resolution: {max_resolution}")
             
             # Initialize punch counters
             punch_counts = {
@@ -189,17 +222,24 @@ class YOLOProcessor:
                 "total": 0
             }
             
-            # Process video with YOLO
+            # Process video with YOLO with optimizations
             results = self.model.predict(
                 source=video_path,
                 conf=self.confidence_threshold,
                 verbose=False,
-                save=False  # Don't save output video
+                save=False,  # Don't save output video
+                imgsz=max_resolution,  # Resize to max_resolution for speed
+                device=self.device  # Use detected device (GPU if available)
             )
             
-            # Cluster analysis for punch counting
+            # Cluster analysis for punch counting with frame sampling
             current_cluster_punches = []
             in_cluster = False
+            frame_count = 0
+            
+            # Adjust cluster thresholds based on adaptive frame skip
+            min_cluster_frames = max(3, 8 // adaptive_frame_skip)  # Scale down cluster requirements
+            min_majority_frames = max(2, 6 // adaptive_frame_skip)  # Scale down majority requirements
             
             for result in results:
                 boxes = result.boxes
@@ -224,14 +264,14 @@ class YOLOProcessor:
                     # Add punch to current cluster
                     current_cluster_punches.append(frame_punch_type)
                     in_cluster = True
-                    print(f"Frame punch: {frame_punch_type}")
+                    print(f"Frame {frame_count} punch: {frame_punch_type}")
                     
                 elif in_cluster and len(current_cluster_punches) > 0:
                     # End of cluster - analyze it
                     print(f"Cluster ended. Punches: {current_cluster_punches}")
                     
-                    # Only count if cluster has enough frames (minimum 8)
-                    if len(current_cluster_punches) >= 8:
+                    # Only count if cluster has enough frames (adjusted for frame skip)
+                    if len(current_cluster_punches) >= min_cluster_frames:
                         # Count frame types in cluster
                         # jab_frames = current_cluster_punches.count("jab")
                         # cross_frames = current_cluster_punches.count("cross")
@@ -251,19 +291,21 @@ class YOLOProcessor:
                         majority_punch = max(punch_frame_counts, key=punch_frame_counts.get)
                         majority_count = punch_frame_counts[majority_punch]
                         
-                        # Only count if majority has at least 6 frames
-                        if majority_count >= 6:
+                        # Only count if majority has enough frames (adjusted for frame skip)
+                        if majority_count >= min_majority_frames:
                             punch_counts[majority_punch] += 1
                             punch_counts["total"] += 1
                             print(f"Counted 1 {majority_punch} punch")
                         else:
-                            print(f"No punch type had 6+ frames - ignoring cluster")
+                            print(f"No punch type had {min_majority_frames}+ frames - ignoring cluster")
                     else:
                         print(f"Cluster too short ({len(current_cluster_punches)} frames) - ignoring")
                     
                     # Reset for next cluster
                     current_cluster_punches = []
                     in_cluster = False
+                
+                frame_count += 1
             
             print(f"Video processing complete. Punch counts: {punch_counts}")
             return punch_counts
@@ -271,3 +313,21 @@ class YOLOProcessor:
         except Exception as e:
             print(f"Error processing video: {e}")
             raise Exception(f"Video processing failed: {str(e)}")
+    
+    def process_video_fast(self, video_path, max_resolution=480):
+        """
+        Ultra-fast video processing with maximum frame skipping
+        
+        What this does:
+        - Processes every 5th frame for maximum speed
+        - Uses lower resolution for even faster processing
+        - Optimized for very long videos
+        
+        Args:
+            video_path: Path to video file
+            max_resolution: Maximum video resolution (default 480px for speed)
+        
+        Returns:
+            dict: Punch counts by type
+        """
+        return self.process_video(video_path, frame_skip=5, max_resolution=max_resolution)

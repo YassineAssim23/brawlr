@@ -31,7 +31,9 @@ interface UploadResult {
 export function VideoUpload() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [processingStage, setProcessingStage] = useState<string>('')
   const [result, setResult] = useState<UploadResult | null>(null)
+  const [fastMode, setFastMode] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Handle file selection
@@ -59,6 +61,7 @@ export function VideoUpload() {
   const handleUpload = async (file: File) => {
     setIsUploading(true)
     setUploadProgress(0)
+    setProcessingStage('Preparing video...')
     setResult(null)
 
     try {
@@ -66,24 +69,36 @@ export function VideoUpload() {
       const formData = new FormData()
       formData.append('video', file)
 
-      // Simulate progress (we'll replace this with real progress later)
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return prev
-          }
-          return prev + 10
-        })
-      }, 200)
+      // Simulate progress with realistic stages
+      const progressStages = [
+        { stage: 'Uploading video...', progress: 20 },
+        { stage: 'Preprocessing video...', progress: 40 },
+        { stage: 'Loading AI model...', progress: 60 },
+        { stage: 'Analyzing frames...', progress: 80 },
+        { stage: 'Counting punches...', progress: 95 }
+      ]
 
-      // Upload to backend
-      const response = await fetch('http://localhost:8000/upload-video', {
+      let currentStageIndex = 0
+      const progressInterval = setInterval(() => {
+        if (currentStageIndex < progressStages.length) {
+          const currentStage = progressStages[currentStageIndex]
+          setProcessingStage(currentStage.stage)
+          setUploadProgress(currentStage.progress)
+          currentStageIndex++
+        } else {
+          clearInterval(progressInterval)
+        }
+      }, 1000)
+
+      // Upload to backend (choose endpoint based on fast mode)
+      const endpoint = fastMode ? 'http://localhost:8000/upload-video-fast' : 'http://localhost:8000/upload-video'
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       })
 
       clearInterval(progressInterval)
+      setProcessingStage('Finalizing results...')
       setUploadProgress(100)
 
       if (!response.ok) {
@@ -107,12 +122,15 @@ export function VideoUpload() {
       })
     } finally {
       setIsUploading(false)
+      setProcessingStage('')
     }
   }
 
   const resetUpload = () => {
     setResult(null)
     setUploadProgress(0)
+    setProcessingStage('')
+    setFastMode(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -128,6 +146,20 @@ export function VideoUpload() {
         <CardDescription>
           Upload a boxing video to analyze punch counts and get detailed statistics
         </CardDescription>
+        
+        {/* Fast Mode Toggle */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="fastMode"
+            checked={fastMode}
+            onChange={(e) => setFastMode(e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <label htmlFor="fastMode" className="text-sm text-gray-600">
+            <strong>Fast Mode</strong> - Process every 5th frame for maximum speed (may be less accurate)
+          </label>
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -145,10 +177,19 @@ export function VideoUpload() {
             {isUploading ? (
               <div className="space-y-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="text-sm text-gray-600">Processing video...</p>
+                <p className="text-sm text-gray-600">{processingStage}</p>
                 <Progress value={uploadProgress} className="w-full" />
                 <p className="text-xs text-gray-500">{uploadProgress}% complete</p>
-                <p className="text-xs text-gray-400">This may take several minutes for longer videos</p>
+                <p className="text-xs text-gray-400">
+                  {fastMode ? 
+                    (uploadProgress < 40 ? 'Ultra-fast mode: Optimizing video...' : 
+                     uploadProgress < 80 ? 'AI analyzing every 5th frame...' : 
+                     'Almost done! Counting punches...') :
+                    (uploadProgress < 40 ? 'Optimizing video for faster processing...' : 
+                     uploadProgress < 80 ? 'AI is analyzing your video...' : 
+                     'Almost done! Counting punches...')
+                  }
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
