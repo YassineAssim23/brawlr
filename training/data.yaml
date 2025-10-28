@@ -2,8 +2,8 @@ train: ../train/images
 val: ../valid/images
 test: ../test/images
 
-nc: 6
-names: ['bag', 'cross', 'hook', 'jab', 'no punch', 'uppercut']
+nc: 5
+names: ['bag', 'hook', 'straight', 'no punch', 'uppercut']
 
 roboflow:
   workspace: brawlr
