@@ -102,7 +102,10 @@ async def upload_video(video: UploadFile = File(...)):
             return {
                 "success": True,
                 "filename": video.filename,
-                "results": results,  # contains { "videoType", "punchCounts": {...} }
+                   "results": {
+                    "videoType": "processed",
+                    "punchCounts": punch_counts
+                }
             }
 
         finally:

@@ -3,8 +3,8 @@ Created by: Yassine Assim
 Date: October 1, 2025
 Description: Component for uploading boxing videos for analysis to the model
 
-Updated by: 
-Date Updated: 
+Updated by: Toufiq Charania
+Date Updated: October 28 2025
 Notes: 
 */
 "use client"
