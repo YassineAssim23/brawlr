@@ -57,7 +57,7 @@ export function VideoUpload() {
     event.preventDefault()
   }
 
-  // Upload and process video
+ // Upload and process video
   const handleUpload = async (file: File) => {
     setIsUploading(true)
     setUploadProgress(0)
@@ -78,7 +78,7 @@ export function VideoUpload() {
         { stage: 'Counting punches...', progress: 95 }
       ]
 
-      let currentStageIndex = 0
+ let currentStageIndex = 0
       const progressInterval = setInterval(() => {
         if (currentStageIndex < progressStages.length) {
           const currentStage = progressStages[currentStageIndex]
@@ -234,7 +234,7 @@ export function VideoUpload() {
           </div>
         )}
 
-        {/* Results */}
+           {/* Results */}
         {result && (!result || !result.success) && (
           <div className="text-xs text-gray-500 mb-2">
             Debug: result exists = {result ? 'true' : 'false'}, success = {result?.success ? 'true' : 'false'}
