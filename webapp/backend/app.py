@@ -192,3 +192,36 @@ async def upload_video_fast(video: UploadFile = File(...)):
     except Exception as e:
         print(f"Fast video processing error: {e}")
         raise HTTPException(status_code=500, detail=f"Fast video processing failed: {str(e)}")
+
+# Save score endpoint
+class SaveScoreRequest(BaseModel):
+    username: str
+    score: int
+
+@app.post("/save-score")
+async def save_score(request: SaveScoreRequest):
+    """
+    Save a user's score to the leaderboard.
+    Only saves if the new score is better than their existing best score.
+    """
+    try:
+        if not request.username or not request.username.strip():
+            raise HTTPException(status_code=400, detail="Username is required")
+        
+        if request.score < 0:
+            raise HTTPException(status_code=400, detail="Score must be non-negative")
+        
+        print(f"Saving score for user: {request.username} with score: {request.score}")
+        result = await save_or_update_score(request.username.strip(), request.score)
+        
+        return {
+            "success": True,
+            "message": "Score saved successfully" if result.get("status") == "updated" else "Score not saved (not better than existing score)",
+            "result": result
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Error saving score: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to save score: {str(e)}")

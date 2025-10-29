@@ -16,11 +16,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # AI Models (large files) - but allow our trained model
-*.pt
 *.pth
 *.pkl
-# Exception: allow our trained model
-!desktop/backend/models/best.pt
 
 # Data files
 training/videos/*
@@ -31,6 +28,8 @@ sessions/
 *.MOV
 *.MP4
 inference_log.txt
+datasets/
+runs/
 
 # OS
 .DS_Store

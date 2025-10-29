@@ -19,7 +19,7 @@ interface MatchContextType {
   //trigger analytics reset function can be added here
   resetAnalytics: number
   //ending of the timer trigger can be added here
-  onMatchEnd: (callback: () => void) => void
+  onMatchEnd: (callback: () => void) => (() => void)
 
   //register camera for daily start training
   // registerCameraStart: (fn: () => void) => void

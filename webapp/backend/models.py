@@ -18,7 +18,7 @@ class YOLOProcessor:
           }
     """
 
-    def __init__(self, model_path=None, confidence_threshold=0.15):
+    def __init__(self, model_path=None, confidence_threshold=0.01):
         """
         Initialize YOLO processor and load model
         

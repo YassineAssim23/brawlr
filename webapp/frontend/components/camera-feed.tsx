@@ -49,10 +49,31 @@ export function CameraFeed() {
       console.log("⏰ Match ended - stopping camera capture")
       stopCapture()
     }
-        onMatchEnd(handleMatchEnd)
+    
+    const cleanupMatchEnd = onMatchEnd(handleMatchEnd)
 
     return () => {
-      stopCapture() // cleanup on unmount
+      // Remove match end callback
+      if (cleanupMatchEnd) {
+        cleanupMatchEnd()
+      }
+      // Only cleanup resources on unmount, don't trigger save modal
+      if (videoRef.current) {
+        const stream = videoRef.current.srcObject as MediaStream
+        stream?.getTracks().forEach(track => track.stop())
+        videoRef.current.srcObject = null
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      if (wsRef.current) {
+        try { wsRef.current.close() } catch (e) { /* ignore */ }
+        wsRef.current = null
+      }
+      setIsConnected(false)
+      setIsActive(false)
+      setStatus('Camera Off')
     }
  }, [onMatchEnd])
 
@@ -128,7 +149,7 @@ export function CameraFeed() {
        // Debug: Show ALL detections to see what's happening
            console.log(`🥊 ${data.punchType.toUpperCase()} detected! (${Math.round(data.confidence * 100)}% confidence)`)
            // Lower the confidence threshold to 0.5 (50%) to see more detections
-           if (data.confidence > 0.5) {
+           if (data.confidence > 0.01) {
              // Debounce: only count if enough time has passed since last detection
              if (now - lastDetectionTime.current > MIN_DETECTION_INTERVAL) {
                console.log(`✅ ${data.punchType.toUpperCase()} COUNTED! (${Math.round(data.confidence * 100)}% confidence)`)
@@ -162,6 +183,11 @@ export function CameraFeed() {
   // Existing stopCapture function
   async function stopCapture(){
     console.log("🛑 Stopping capture...")
+    
+    // Capture current state BEFORE cleanup (important: check isActive before we set it to false)
+    const wasActive = isActive
+    const currentStats = stats.total
+    
     if (videoRef.current){
       const stream = videoRef.current.srcObject as MediaStream
       stream?.getTracks().forEach(track=> track.stop())
@@ -185,20 +211,25 @@ export function CameraFeed() {
       wsRef.current = null
     }
     setIsConnected(false)
-    // Only prompt to save if there is at least 1 punch recorded (using stats.total from context)
-    // If score is zero, notify user and do not call backend.
-    if (stats.total > 0) {
+    
+    // Only prompt to save if:
+    // 1. There is at least 1 punch recorded
+    // 2. Camera was actually active (prevent saves on page refresh/unmount)
+    if (currentStats > 0 && wasActive) {
+      console.log(`📊 Prompting to save score: ${currentStats} punches`)
       setSaveModalOpen(true)
-    } else {
-      // simple UX: alert – replace with your toast component if available
+    } else if (currentStats === 0 && wasActive) {
+      // Only show alert if camera was actually running (user intentionally stopped)
       window.alert("No punches recorded – nothing to save.")
     }
+    // If wasActive is false, we're just cleaning up (page refresh/unmount), so don't show anything
   }
 
   // Called when the modal's onSave is triggered (username + score)
   async function handleSave(username: string, score: number) {
     try {
-      // POST to new backend endpoint /save-score (see backend change below)
+      console.log(`💾 Attempting to save score: ${username} with ${score} punches`)
+      // POST to new backend endpoint /save-score
       const resp = await fetch("http://localhost:8000/save-score", {
         method: "POST",
         headers: {
@@ -208,14 +239,17 @@ export function CameraFeed() {
       })
 
       if (!resp.ok) {
-        console.error("Failed to save score", await resp.text())
-      } else {
-        console.log("Score saved successfully")
+        const errorText = await resp.text()
+        console.error("❌ Failed to save score:", errorText)
+        throw new Error(`Failed to save score: ${errorText}`)
       }
+      
+      const result = await resp.json()
+      console.log("✅ Score saved successfully:", result)
     } catch (err) {
-      console.error("Error saving score:", err)
-    } finally {
-      setSaveModalOpen(false)
+      console.error("❌ Error saving score:", err)
+      // Re-throw so the modal can show the error to the user
+      throw err
     }
   }
 

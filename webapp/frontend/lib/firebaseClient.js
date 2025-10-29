@@ -31,6 +31,7 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+console.log("App initalized: " + app);
 const db = getFirestore(app);
 
 /**
