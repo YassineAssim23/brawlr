@@ -10,8 +10,8 @@ interface SaveScoreModalProps {
     score: number;
     isOpen: boolean;
     onClose: () => void;
-    // Function that takes the username and score, and triggers the API call
-    onSave: (username: string, score: number) => void; 
+    // onSave should return a Promise so the modal can await completion
+    onSave: (username: string, score: number) => Promise<void>; 
 }
 
 export const SaveScoreModal = ({ score, isOpen, onClose, onSave }: SaveScoreModalProps) => {
@@ -32,19 +32,30 @@ export const SaveScoreModal = ({ score, isOpen, onClose, onSave }: SaveScoreModa
         if (shouldSave) {
             setStep('username');
         } else {
-            onClose(); // User selected No, close the model
+            onClose(); // User selected No, close the modal
         }
     };
 
-    const handleUsernameSubmit = () => {
+    const handleUsernameSubmit = async () => {
         if (username.trim().length < 3) {
             setError('Username must be at least 3 characters.');
             return;
         }
         setError('');
-        // Trigger the main save logic in the parent component
-        onSave(username.trim(), score); 
-        onClose(); 
+        try {
+            // WAIT for the parent save to complete
+            await onSave(username.trim(), score);
+
+            // only close + redirect after save finished successfully
+            onClose();
+
+            // redirect to leaderboard (use your existing route or query param)
+            // use '?showLeaderboard=true' if your leaderboard panel opens from home
+            window.location.href = '/?showLeaderboard=true';
+        } catch (e) {
+            console.error('Failed to save score:', e);
+            setError('Failed to save score. Please try again.');
+        }
     };
 
     return (

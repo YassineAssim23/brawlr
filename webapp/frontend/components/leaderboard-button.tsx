@@ -43,6 +43,14 @@ export const LeaderboardButton = () => {
     }
   }, [open]); // Dependency on 'open' state
 
+  // Effect to check URL parameters on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('showLeaderboard') === 'true') {
+        setOpen(true);
+    }
+  }, []);
+
   return (
     <div className="relative">
       {/* Leaderboard Button */}
