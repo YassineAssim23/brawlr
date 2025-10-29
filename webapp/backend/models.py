@@ -131,9 +131,9 @@ class YOLOProcessor:
             
             # Adaptive frame skip based on video length
             import cv2  # type: ignore
-            cap = cv2.VideoCapture(video_path)
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            fps = int(cap.get(cv2.CAP_PROP_FPS))
+            cap = cv2.VideoCapture(video_path)  # type: ignore[attr-defined]
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # type: ignore[attr-defined]
+            fps = int(cap.get(cv2.CAP_PROP_FPS))  # type: ignore[attr-defined]
             video_duration = total_frames / fps if fps > 0 else 0
             cap.release()
             
@@ -141,9 +141,9 @@ class YOLOProcessor:
             if video_duration > 60:  # Videos longer than 1 minute
                 adaptive_frame_skip = max(4, frame_skip)  # Skip more frames for long videos
             elif video_duration > 30:  # Videos 30-60 seconds
-                adaptive_frame_skip = max(3, frame_skip)
+                adaptive_frame_skip = 2  # Denser sampling for mid-length clips
             else:  # Short videos
-                adaptive_frame_skip = frame_skip
+                adaptive_frame_skip = min(frame_skip, 2)
             
             print(f"Video duration: {video_duration:.1f}s, Total frames: {total_frames}")
             print(f"Frame skip: {adaptive_frame_skip}, Max resolution: {max_resolution}")
@@ -224,13 +224,13 @@ class YOLOProcessor:
                         majority_punch = max(punch_frame_counts, key=punch_frame_counts.get)
                         majority_count = punch_frame_counts[majority_punch]
                         
-                        # Only count if majority has at least 6 frames
-                        if majority_count >= 6:
+                        # Only count if majority meets adaptive minimum frames
+                        if majority_count >= min_majority_frames:
                             punch_counts[majority_punch] += 1
                             punch_counts["total"] += 1
                             print(f"Counted 1 {majority_punch} punch")
                         else:
-                            print(f"No punch type had 6+ frames - ignoring cluster")
+                            print(f"No punch type met threshold {min_majority_frames}+ frames - ignoring cluster")
                     else:
                         print(f"Cluster too short ({len(current_cluster_punches)} frames) - ignoring")
                     
@@ -244,3 +244,9 @@ class YOLOProcessor:
         except Exception as e:
             print(f"Error processing video: {e}")
             raise Exception(f"Video processing failed: {str(e)}")
+
+    def process_video_fast(self, video_path):
+        """
+        Fast variant: increase frame skipping and lower resolution via process_video.
+        """
+        return self.process_video(video_path=video_path, frame_skip=5, max_resolution=480)
