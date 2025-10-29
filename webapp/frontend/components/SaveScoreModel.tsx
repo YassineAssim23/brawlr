@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from './ui/button'; 
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +19,13 @@ export const SaveScoreModal = ({ score, isOpen, onClose, onSave }: SaveScoreModa
     const [step, setStep] = useState<'confirm' | 'username'>('confirm');
     const [username, setUsername] = useState('');
     const [error, setError] = useState('');
+    const [mounted, setMounted] = useState(false);
+
+    // Ensure we're on the client before rendering portal
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
     // Reset state when the modal opens
     useEffect(() => {
@@ -58,7 +66,7 @@ export const SaveScoreModal = ({ score, isOpen, onClose, onSave }: SaveScoreModa
         }
     };
 
-    return (
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
@@ -127,4 +135,8 @@ export const SaveScoreModal = ({ score, isOpen, onClose, onSave }: SaveScoreModa
             )}
         </AnimatePresence>
     );
+
+    // Render modal via portal to document.body to avoid parent transforms
+    if (!mounted) return null;
+    return createPortal(modalContent, document.body);
 };
