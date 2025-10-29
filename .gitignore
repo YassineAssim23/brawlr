@@ -94,5 +94,8 @@ out/
 .env.test.local
 .env.production.local
 
+# Firebase
+**/brawlr-database-firebase-adminsdk*.json
+
 # Jupyter Notebooks
 .ipynb_checkpoints/

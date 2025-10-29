@@ -6,6 +6,10 @@ Description: Component to display live camera feed and handle video capture and 
 Updated by: Mariah Falzon
 Date Updated:October 24, 2025
 Notes: added punch context to update punch stats upon detection
+
+Updated by: Assistant
+Date Updated: October 27, 2025
+Notes: Integrated PunchContext for all punch counting, removed local liveScore state
 */
 
 "use client"
@@ -16,6 +20,7 @@ import { Card } from "@/components/ui/card"
 import { Camera, CameraOff, Settings } from "lucide-react"
 import { usePunches } from "@/components/context/PunchContext"
 import { useMatch } from "./context/MatchContext"
+import { SaveScoreModal } from "./SaveScoreModel"
 
 export function CameraFeed() {
   // state variables
@@ -34,11 +39,14 @@ export function CameraFeed() {
    const lastDetectionTime = useRef<number>(0)
    const MIN_DETECTION_INTERVAL = 500 // 500ms between detections
 
-   //add punch context
-   const { addPunch } = usePunches()
+   //add punch context - now using stats.total instead of local liveScore
+   const { addPunch, stats } = usePunches()
 
    //add match context
    const { startTimer, stopTimer } = useMatch()
+
+   // Modal state for saving score
+   const [isSaveModalOpen, setSaveModalOpen] = useState(false)
 
   // Existing startCapture function
   async function startCapture(){
@@ -78,7 +86,7 @@ export function CameraFeed() {
       setStatus('Camera On')
       setIsActive(true)
 
-      // NEW: Connect to backend WebSocket
+      //Connect to backend WebSocket
       wsRef.current = new WebSocket('ws://localhost:8000/ws')
 
       // When WebSocket connection opens
@@ -93,20 +101,19 @@ export function CameraFeed() {
          const data = JSON.parse(event.data)
          if (data.type === 'punch') {
            const now = Date.now()
-
-           //update live punch stats
-            addPunch(data.punchType)
            
            // Debug: Show ALL detections to see what's happening
            console.log(`🥊 ${data.punchType.toUpperCase()} detected! (${Math.round(data.confidence * 100)}% confidence)`)
            
            // Lower the confidence threshold to 0.5 (50%) to see more detections
            if (data.confidence > 0.5) {
-             // Debounce: only show if enough time has passed since last detection
+             // Debounce: only count if enough time has passed since last detection
              if (now - lastDetectionTime.current > MIN_DETECTION_INTERVAL) {
-               console.log(`🥊 ${data.punchType.toUpperCase()} detected! (${Math.round(data.confidence * 100)}% confidence)`)
+               console.log(`✅ ${data.punchType.toUpperCase()} COUNTED! (${Math.round(data.confidence * 100)}% confidence)`)
                lastDetectionTime.current = now
-               // TODO: Update punch counters
+               
+               // Update punch stats via context - this increments stats.total and the specific punch type
+               addPunch(data.punchType)
              } else {
                console.log(`🔄 ${data.punchType} detected but too soon (${Math.round(data.confidence * 100)}%) - debouncing`)
              }
@@ -133,30 +140,66 @@ export function CameraFeed() {
 
   // Existing stopCapture function
   async function stopCapture(){
+    // stop camera stream if running
     if (videoRef.current){
       const stream = videoRef.current.srcObject as MediaStream
       stream?.getTracks().forEach(track=> track.stop())
       videoRef.current.srcObject = null
     }
     
+    // update UI state
     setStatus('Camera Off')
     setIsActive(false)
 
-    stopTimer() // Stop match timer when camera stops
+    // stop match timer
+    stopTimer()
 
-    // NEW: Stop sending frames and close WebSocket
+    // Stop sending frames and close WebSocket
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
     }
 
     if (wsRef.current) {
-      wsRef.current.close()
+      try { wsRef.current.close() } catch (e) { /* ignore */ }
       wsRef.current = null
+    }
+
+    // Only prompt to save if there is at least 1 punch recorded (using stats.total from context)
+    // If score is zero, notify user and do not call backend.
+    if (stats.total > 0) {
+      setSaveModalOpen(true)
+    } else {
+      // simple UX: alert – replace with your toast component if available
+      window.alert("No punches recorded – nothing to save.")
     }
   }
 
-  // NEW: Function to capture a frame from video and send to backend
+  // Called when the modal's onSave is triggered (username + score)
+  async function handleSave(username: string, score: number) {
+    try {
+      // POST to new backend endpoint /save-score (see backend change below)
+      const resp = await fetch("http://localhost:8000/save-score", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, score }),
+      })
+
+      if (!resp.ok) {
+        console.error("Failed to save score", await resp.text())
+      } else {
+        console.log("Score saved successfully")
+      }
+    } catch (err) {
+      console.error("Error saving score:", err)
+    } finally {
+      setSaveModalOpen(false)
+    }
+  }
+
+  // Function to capture a frame from video and send to backend
   function captureFrame() {
     // Check if we have video, canvas, and WebSocket connection
     if (videoRef.current && canvasRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
@@ -197,11 +240,12 @@ export function CameraFeed() {
         <h3 className="text-xl font-semibold text-foreground">Live Camera Feed</h3>
       </div>
 
-      {/* NEW: Show connection status */}
+      {/* Show connection status and live score from context */}
       <div className="mb-4">
         <p className="text-sm text-muted-foreground">
           Camera: {status} | Backend: {isConnected ? 'Connected' : 'Disconnected'}
         </p>
+        <p className="text-sm text-muted-foreground">Live Score: {stats.total} 🥊</p>
       </div>
 
       <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-6 relative overflow-hidden flex-1">
@@ -225,7 +269,7 @@ export function CameraFeed() {
         )}
       </div>
 
-      {/* NEW: Hidden canvas for frame capture */}
+      {/* Hidden canvas for frame capture */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       <div className="flex gap-3">
@@ -237,6 +281,14 @@ export function CameraFeed() {
           {isActive ? "Stop Training" : "Start Training"}
         </Button>
       </div>
+
+      {/* Save score modal - now using stats.total from context */}
+      <SaveScoreModal
+        score={stats.total}
+        isOpen={isSaveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        onSave={handleSave}
+      />
     </Card>
   )
 }

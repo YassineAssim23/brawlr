@@ -19,7 +19,7 @@ class YOLOProcessor:
         Initialize YOLO processor and load model
         
         What this does:
-        - Finds the model file (best.pt)
+        - Finds the model file 
         - Loads the YOLO model
         - Sets up for inference
         
@@ -30,7 +30,7 @@ class YOLOProcessor:
         if model_path is None:
             # Find model file relative to this file
             current_dir = Path(__file__).parent
-            model_path = current_dir / "models" / "best_straight_v1.pt" # CHANGED MODEL FROM best.pt
+            model_path = current_dir / "models" / "best_straight_v1.pt" 
         
         print(f"Loading YOLO model from: {model_path}")
         

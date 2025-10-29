@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException
+from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from .models import YOLOProcessor
 import json
@@ -6,6 +6,10 @@ import time
 import tempfile
 import os
 from pathlib import Path
+from pydantic import BaseModel
+import traceback
+import inspect
+from .firebaseAdmin import save_or_update_score, db  # Import db from firebaseAdmin
 
 # Create the FastAPI app instance
 app = FastAPI(title="Brawlr Backend", version="1.0.0")
@@ -68,39 +72,71 @@ async def health():
 
 # Video upload endpoint
 @app.post("/upload-video")
-async def upload_video(video: UploadFile = File(...)):
+async def upload_video(
+    video: UploadFile = File(...),
+    username: str = Form(None) 
+):
     """
-    Upload a video file and process it through YOLO to count punches
+    Upload a video file, process it, and optionally save the score to the leaderboard.
     """
     try:
-        # Validate file type
         if not video.content_type.startswith('video/'):
             raise HTTPException(status_code=400, detail="File must be a video")
         
-        # Create temporary file to save uploaded video
         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{video.filename.split('.')[-1]}") as temp_file:
-            # Write uploaded video to temporary file
             content = await video.read()
             temp_file.write(content)
             temp_file_path = temp_file.name
         
         try:
-            # Process video through YOLO
             print(f"Processing video: {video.filename}")
-            print(f"Video size: {len(content)} bytes")
             punch_counts = yolo_processor.process_video(temp_file_path)
+            
+            total_score = punch_counts.get("total", 0)
+            save_result = None
+
+            if username and total_score > 0:
+                print(f"Saving score for user: {username} with score: {total_score}")
+                save_result = await save_or_update_score(username, total_score)
             
             return {
                 "success": True,
                 "filename": video.filename,
-                "punchCounts": punch_counts
+                "punchCounts": punch_counts,
+                "scoreSaved": save_result
             }
             
         finally:
-            # Clean up temporary file
             if os.path.exists(temp_file_path):
                 os.unlink(temp_file_path)
                 
     except Exception as e:
         print(f"Video processing error: {e}")
         raise HTTPException(status_code=500, detail=f"Video processing failed: {str(e)}")
+
+# Save score endpoint
+class ScorePayload(BaseModel):
+    username: str
+    score: int
+
+@app.post("/save-score")
+async def save_score(payload: ScorePayload):
+    print("DEBUG /save-score called with payload:", payload.dict())
+    print("DEBUG db is None?:", db is None)
+    if db is None:
+        print("ERROR: Database not configured - service account init may have failed")
+        raise HTTPException(status_code=503, detail="Database not configured")
+    if not payload.username or payload.score <= 0:
+        print("WARN: invalid payload:", payload.dict())
+        raise HTTPException(status_code=400, detail="Invalid username or score")
+    try:
+        if inspect.iscoroutinefunction(save_or_update_score):
+            result = await save_or_update_score(payload.username, payload.score)
+        else:
+            result = save_or_update_score(payload.username, payload.score)
+        print("DEBUG save_or_update_score result:", result)
+        return {"success": True, "result": result}
+    except Exception as e:
+        print("ERROR saving score:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Failed to save score")

@@ -36,6 +36,8 @@ cd webapp\frontend
 
 # Install dependencies
 npm install
+#Firebase npm installs for frontend to be done within the webapp\frontend directory
+npm install firebase
 
 # Start frontend
 npm run dev
