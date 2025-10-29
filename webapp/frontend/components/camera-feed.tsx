@@ -8,8 +8,8 @@ Date Updated: October 28, 2025
 Notes: Merged memory leak fix + WebSocket + match/punch handling
 
 Updated by: Assistant
-Date Updated: October 27, 2025
-Notes: Integrated PunchContext for all punch counting, removed local liveScore state
+Date Updated: October 29, 2025
+Notes: Fixed timer end behavior to always show save modal when timer expires
 */
 
 "use client"
@@ -46,8 +46,9 @@ export function CameraFeed() {
     // --- Cleanup on Unmount or Match End ---
   useEffect(() => {
     const handleMatchEnd = () => {
-      console.log("⏰ Match ended - stopping camera capture")
-      stopCapture()
+      console.log("⏰ Match ended by timer - stopping camera capture")
+      // Stop camera and show save modal immediately
+      stopCaptureAndPromptSave()
     }
     
     const cleanupMatchEnd = onMatchEnd(handleMatchEnd)
@@ -180,14 +181,8 @@ export function CameraFeed() {
     }
   }
 
-  // Existing stopCapture function
-  async function stopCapture(){
-    console.log("🛑 Stopping capture...")
-    
-    // Capture current state BEFORE cleanup (important: check isActive before we set it to false)
-    const wasActive = isActive
-    const currentStats = stats.total
-    
+  // Helper function to cleanup camera resources
+  function cleanupCamera() {
     if (videoRef.current){
       const stream = videoRef.current.srcObject as MediaStream
       stream?.getTracks().forEach(track=> track.stop())
@@ -196,10 +191,9 @@ export function CameraFeed() {
     
     setStatus('Camera Off')
     setIsActive(false)
-
     stopTimer() // Stop match timer when camera stops
 
-    // NEW: Stop sending frames and close WebSocket
+    // Stop sending frames and close WebSocket
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
@@ -211,18 +205,34 @@ export function CameraFeed() {
       wsRef.current = null
     }
     setIsConnected(false)
+  }
+
+  // Called when user manually stops (via button)
+  async function stopCapture(){
+    console.log("🛑 User manually stopping capture...")
     
-    // Only prompt to save if:
-    // 1. There is at least 1 punch recorded
-    // 2. Camera was actually active (prevent saves on page refresh/unmount)
-    if (currentStats > 0 && wasActive) {
+    const currentStats = stats.total
+    cleanupCamera()
+    
+    // Only prompt to save if there's at least 1 punch
+    if (currentStats > 0) {
       console.log(`📊 Prompting to save score: ${currentStats} punches`)
       setSaveModalOpen(true)
-    } else if (currentStats === 0 && wasActive) {
-      // Only show alert if camera was actually running (user intentionally stopped)
+    } else {
       window.alert("No punches recorded – nothing to save.")
     }
-    // If wasActive is false, we're just cleaning up (page refresh/unmount), so don't show anything
+  }
+
+  // Called when timer ends (via MatchContext callback)
+  async function stopCaptureAndPromptSave() {
+    console.log("⏰ Timer ended - stopping capture and prompting save...")
+    
+    const currentStats = stats.total
+    cleanupCamera()
+    
+    // Always show modal when timer ends (even if 0 punches - user completed a session)
+    console.log(`📊 Timer ended - prompting to save score: ${currentStats} punches`)
+    setSaveModalOpen(true)
   }
 
   // Called when the modal's onSave is triggered (username + score)
@@ -349,15 +359,15 @@ export function CameraFeed() {
       {/* NEW: Hidden canvas for frame capture */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      <div className="flex gap-3">
+      {/* <div className="flex gap-3">
         <Button
           onClick={isActive ? stopCapture : startCapture}
           className={isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}
           size="lg"
         >
           {isActive ? "Stop Training" : "Start Training"}
-        </Button>
-      </div>
+        </Button> */}
+      {/* </div> */}
        {/* Save score modal - now using stats.total from context */}
       <SaveScoreModal
         score={stats.total}
