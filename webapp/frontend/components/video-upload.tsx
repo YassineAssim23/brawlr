@@ -44,7 +44,7 @@ export function VideoUpload() {
     }
   }
 
-  // Handle drag and drop
+// Handle drag and drop
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
     const file = event.dataTransfer.files[0]
@@ -53,7 +53,7 @@ export function VideoUpload() {
     }
   }
 
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+ const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
   }
 
@@ -64,7 +64,11 @@ export function VideoUpload() {
     setProcessingStage('Preparing video...')
     setResult(null)
 
-    try {
+    // Declare progressInterval outside try block so it's accessible in catch
+    let progressInterval: NodeJS.Timeout | null = null
+
+
+   try {
       // Create FormData for file upload
       const formData = new FormData()
       formData.append('video', file)
@@ -79,25 +83,33 @@ export function VideoUpload() {
       ]
 
  let currentStageIndex = 0
-      const progressInterval = setInterval(() => {
+      
+      progressInterval = setInterval(() => {
         if (currentStageIndex < progressStages.length) {
           const currentStage = progressStages[currentStageIndex]
           setProcessingStage(currentStage.stage)
           setUploadProgress(currentStage.progress)
           currentStageIndex++
         } else {
-          clearInterval(progressInterval)
+          if (progressInterval) {
+            clearInterval(progressInterval)
+            progressInterval = null
+          }
         }
       }, 1000)
 
-      // Upload to backend (choose endpoint based on fast mode)
+
+ // Upload to backend (choose endpoint based on fast mode)
       const endpoint = fastMode ? 'http://localhost:8000/upload-video-fast' : 'http://localhost:8000/upload-video'
       const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       })
 
-      clearInterval(progressInterval)
+if (progressInterval) {
+        clearInterval(progressInterval)
+        progressInterval = null
+      }
       setProcessingStage('Finalizing results...')
       setUploadProgress(100)
 
@@ -108,14 +120,29 @@ export function VideoUpload() {
       const data = await response.json()
       console.log("Backend response:", data)
       
-      setResult({
-        success: true,
-        punchCounts: data.punchCounts
-      })
+setResult({
+  success: data.success,
+  punchCounts:
+    data.punchCounts ||
+    data.results?.punchCounts || // ✅ works with your /upload-video endpoint
+    data.results ||
+    {
+      straight: 0,
+      hook: 0,
+      uppercut: 0,
+      total: 0,
+    },
+})
+
       console.log("Result set:", { success: true, punchCounts: data.punchCounts })
 
     } catch (error) {
       console.error('Upload error:', error)
+      // Ensure interval is cleared on error
+      if (progressInterval) {
+        clearInterval(progressInterval)
+        progressInterval = null
+      }
       setResult({
         success: false,
         error: error instanceof Error ? error.message : 'Upload failed'
@@ -125,7 +152,6 @@ export function VideoUpload() {
       setProcessingStage('')
     }
   }
-
   const resetUpload = () => {
     setResult(null)
     setUploadProgress(0)
@@ -137,14 +163,11 @@ export function VideoUpload() {
   }
 
   return (
-    <Card className="w-full
-    bg-[#111417]
-    border-2 border-brawlr-red 
-    rounded-xl
-    gap-6 
-    transition-all duration-300
-    hover:shadow-[0_0_35px_rgba(0,255,255,.8)]
-    hover:scale-[1.02]">
+    <Card
+      className="w-full bg-[#111417] border-2 border-brawlr-red rounded-xl gap-6 
+                 transition-all duration-300 hover:shadow-[0_0_35px_rgba(0,255,255,.8)]
+                 hover:scale-[1.02]"
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileVideo className="h-5 w-5" />
@@ -153,9 +176,9 @@ export function VideoUpload() {
         <CardDescription>
           Upload a boxing video to analyze punch counts and get detailed statistics
         </CardDescription>
-        
-        {/* Fast Mode Toggle */}
-        <div className="flex items-center space-x-2">
+
+  {/* Fast Mode Toggle */}
+        <div className="flex items-center space-x-2 mt-2">
           <input
             type="checkbox"
             id="fastMode"
@@ -164,19 +187,19 @@ export function VideoUpload() {
             className="rounded border-gray-300"
           />
           <label htmlFor="fastMode" className="text-sm text-gray-600">
-            <strong>Fast Mode</strong> - Process every 5th frame for maximum speed (may be less accurate)
+            <strong>Fast Mode</strong> — Process every 5th frame for maximum speed
           </label>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
-        {/* Upload Area */}
+        {/* Upload / Progress Section */}
         {!result && (
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              isUploading 
-                ? 'border-blue-500 bg-blue-50' 
-                : 'border-gray-300 hover:border-gray-400'
+              isUploading
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-300 hover:border-gray-400"
             }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -187,7 +210,7 @@ export function VideoUpload() {
                 <p className="text-sm text-gray-600">{processingStage}</p>
                 <Progress value={uploadProgress} className="w-full" />
                 <p className="text-xs text-gray-500">{uploadProgress}% complete</p>
-                <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400">
                   {fastMode ? 
                     (uploadProgress < 40 ? 'Ultra-fast mode: Optimizing video...' : 
                      uploadProgress < 80 ? 'AI analyzing every 5th frame...' : 
@@ -197,28 +220,20 @@ export function VideoUpload() {
                      'Almost done! Counting punches...')
                   }
                 </p>
+
               </div>
             ) : (
               <div className="space-y-4">
                 <Upload className="h-12 w-12 text-gray-400 mx-auto" />
                 <div>
-                  <p className="text-lg font-medium text-white-900">
-                    Drop your video here, or click to browse
-                  </p>
+                  <p className="text-lg font-medium text-white">Drop your video here, or click to browse</p>
                   <p className="text-sm text-gray-500 mt-1">
                     Supports MP4, AVI, MOV, and other video formats
                   </p>
                 </div>
-                <Button 
+                <Button
                   onClick={() => fileInputRef.current?.click()}
-                       className="
-                brawlr-red
-                border-2 border-brawlr-red
-                text-white
-               hover:scale-110 
-      transition-all duration-300 
-      rounded-xl
-                "
+                  className="brawlr-red border-2 border-brawlr-red text-white hover:scale-110 transition-all duration-300 rounded-xl"
                 >
                   Choose Video File
                 </Button>
@@ -234,35 +249,24 @@ export function VideoUpload() {
           </div>
         )}
 
-           {/* Results */}
-        {result && (!result || !result.success) && (
-          <div className="text-xs text-gray-500 mb-2">
-            Debug: result exists = {result ? 'true' : 'false'}, success = {result?.success ? 'true' : 'false'}
-          </div>
-        )}
+     {/* Results */}
+       {result && (
+  <div className="text-xs text-gray-500 mb-2">
+    Debug: success = {result.success ? 'true' : 'false'}
+  </div>
+)}
+
         {result && (
           <div className="space-y-4">
             {result.success ? (
-              <div className="space-y-4">
+              <>
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle className="h-5 w-5" />
                   <span className="font-medium">Analysis Complete!</span>
                 </div>
-                
+
                 {result.punchCounts && (
                   <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                    {/* <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {result.punchCounts.jab}
-                      </div>
-                      <div className="text-sm text-gray-600">Jabs</div>
-                    </div> */}
-                    {/* <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">
-                        {result.punchCounts.cross}
-                      </div>
-                      <div className="text-sm text-gray-600">Crosses</div>
-                    </div> */}
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">
                         {result.punchCounts.straight}
@@ -289,22 +293,22 @@ export function VideoUpload() {
                     </div>
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <div className="flex items-center gap-2 text-red-600">
                 <AlertCircle className="h-5 w-5" />
                 <span className="font-medium">Upload Failed</span>
               </div>
             )}
-            
-            {result.error && (
+
+             {result.error && (
               <p className="text-sm text-red-600 bg-red-50 p-3 rounded">
                 {result.error}
               </p>
             )}
-            
+
+
             <Button onClick={resetUpload} className="w-full">
-            {/* variant="outline" */}
               Upload Another Video
             </Button>
           </div>
@@ -313,3 +317,4 @@ export function VideoUpload() {
     </Card>
   )
 }
+

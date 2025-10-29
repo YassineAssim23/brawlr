@@ -66,9 +66,20 @@ async def root():
 async def health():
     return {"status": "healthy", "model_loaded": yolo_processor.model is not None}
 
+
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+
 # Video upload endpoint
 @app.post("/upload-video")
 async def upload_video(video: UploadFile = File(...)):
+     # Check file size
+    video.file.seek(0, 2)  # Seek to end
+    file_size = video.file.tell()
+    video.file.seek(0)  # Reset to beginning
+    
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large (max 100MB)")
+
     """
     Upload a video file, run YOLO full-video processing, and return structured punch counts.
     """
@@ -79,8 +90,12 @@ async def upload_video(video: UploadFile = File(...)):
         
         # Save uploaded video temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{video.filename.split('.')[-1]}") as temp_file:
-            content = await video.read()
-            temp_file.write(content)
+            # content = await video.read()
+            # temp_file.write(content)
+            # temp_file_path = temp_file.name
+            #Change for straming file 
+            while chunk := await video.read(1024 * 1024):
+                temp_file.write(chunk)
             temp_file_path = temp_file.name
 
         try:
@@ -90,7 +105,7 @@ async def upload_video(video: UploadFile = File(...)):
             
             # Process video through YOLO with optimizations
             print(f"Processing video: {video.filename}")
-            print(f"Video size: {len(content)} bytes")
+            #print(f"Video size: {len(content)} bytes")
             
             # Use optimized parameters for faster processing
             punch_counts = yolo_processor.process_video(
@@ -103,7 +118,7 @@ async def upload_video(video: UploadFile = File(...)):
                 "success": True,
                 "filename": video.filename,
                    "results": {
-                    "videoType": "processed",
+                    "videoType": "full",
                     "punchCounts": punch_counts
                 }
             }
@@ -133,8 +148,11 @@ async def upload_video_fast(video: UploadFile = File(...)):
         # Create temporary file to save uploaded video
         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{video.filename.split('.')[-1]}") as temp_file:
             # Write uploaded video to temporary file
-            content = await video.read()
-            temp_file.write(content)
+            # content = await video.read()
+            # temp_file.write(content)
+            # temp_file_path = temp_file.name
+            while chunk := await video.read(1024 * 1024):
+                temp_file.write(chunk)
             temp_file_path = temp_file.name
         
         try:
@@ -144,7 +162,7 @@ async def upload_video_fast(video: UploadFile = File(...)):
             
             # Process video through YOLO with maximum optimizations
             print(f"Processing video (fast mode): {video.filename}")
-            print(f"Video size: {len(content)} bytes")
+            #print(f"Video size: {len(content)} bytes")
             
             # Use ultra-fast processing (every 5th frame)
             punch_counts = yolo_processor.process_video_fast(preprocessed_path)

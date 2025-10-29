@@ -7,7 +7,7 @@ Context interface for use of match controls across components
 
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react"
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from "react"
 
 interface MatchContextType {
   isRunning: boolean
@@ -34,15 +34,18 @@ export function MatchProvider({ children }: { children: ReactNode }) {
     const [timeRemaining, setTimeRemaining] = useState(duration)
     //reset counter
     const [resetAnalytics, setResetAnalytics] = useState(0)
-    //callback for match end
-    const [matchEndCallbacks, setMatchEndCallbacks] = useState<(() => void)[]>([])
+    //callback for match end - using ref to store callbacks to prevent memory leaks
+    const matchEndCallbacksRef = useRef<(() => void)[]>([])
 
-    
-
-    //Register match end callbacks
-    const onMatchEnd = (callback: () => void) => {
-        setMatchEndCallbacks((prev) => [...prev, callback])
-    }
+    //Register match end callbacks - memoized to prevent unnecessary re-renders
+    // Returns cleanup function to remove the callback
+    const onMatchEnd = useCallback((callback: () => void) => {
+        matchEndCallbacksRef.current.push(callback)
+        // Return cleanup function to remove callback when component unmounts
+        return () => {
+            matchEndCallbacksRef.current = matchEndCallbacksRef.current.filter(cb => cb !== callback)
+        }
+    }, [])
 
   //   //register the start of camera for daily challenge autostart
   //   const cameraStartRef = useRef<(() => void) | null>(null)
@@ -74,8 +77,8 @@ export function MatchProvider({ children }: { children: ReactNode }) {
           // stop the timer instantly
           setIsRunning(false)
 
-          // trigger match end callbacks
-          matchEndCallbacks.forEach((cb) => cb())
+          // trigger match end callbacks (use ref to get latest callbacks)
+          matchEndCallbacksRef.current.forEach((cb) => cb())
 
           return 0
         }
@@ -86,7 +89,7 @@ export function MatchProvider({ children }: { children: ReactNode }) {
         return () => {
             if (interval) clearInterval(interval)
         }
-    }, [isRunning])
+    }, [isRunning]) // Only depend on isRunning to avoid restarting interval unnecessarily
 
     //Sync reset with duration changes
     useEffect(() => setTimeRemaining(duration), [duration])

@@ -4,272 +4,247 @@ Date: October 2025
 Description: Component to display live camera feed and handle video capture and streaming to backend for punch detection.
 
 Updated by: Mariah Falzon
-Date Updated:October 24, 2025
-Notes: added punch context to update punch stats upon detection
+Date Updated: October 28, 2025
+Notes: Merged memory leak fix + WebSocket + match/punch handling
 */
 
 "use client"
 
-import { useState, useRef, use, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Camera, CameraOff, Settings } from "lucide-react"
+import { CameraOff } from "lucide-react"
 import { usePunches } from "@/components/context/PunchContext"
 import { useMatch } from "./context/MatchContext"
 
-
 export function CameraFeed() {
-  // state variables
+  // --- State Variables ---
   const [isActive, setIsActive] = useState(false)
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  type CameraStatus = 'Permission Needed' | 'Camera On' | 'Camera Off'
-  const [status, setStatus] = useState<CameraStatus>('Permission Needed')
+  const [status, setStatus] = useState<"Permission Needed" | "Camera On" | "Camera Off">("Permission Needed")
+  const [isConnected, setIsConnected] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
-   // WebSocket and frame capture state
-   const wsRef = useRef<WebSocket | null>(null)  // Holds WebSocket connection
-   const intervalRef = useRef<NodeJS.Timeout | null>(null)  // Holds timer ID
-   const canvasRef = useRef<HTMLCanvasElement | null>(null)  // Hidden canvas for frame capture
-   const [isConnected, setIsConnected] = useState(false)  // Backend connection status
-   
-   // Debouncing to prevent spam detections
-   const lastDetectionTime = useRef<number>(0)
-   const MIN_DETECTION_INTERVAL = 500 // 500ms between detections
+  // --- Stream + Connection Refs ---
+  const streamRef = useRef<MediaStream | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-   //add punch context
-   const { addPunch } = usePunches()
+  // --- Contexts ---
+  const { addPunch } = usePunches()
+  const { startTimer, stopTimer, onMatchEnd } = useMatch()
 
-   //add match context
-   const { startTimer, stopTimer, onMatchEnd } = useMatch()
+  // --- Debounce Punch Detections ---
+  const lastDetectionTime = useRef<number>(0)
+  const MIN_DETECTION_INTERVAL = 500 // ms
 
-  //  useEffect(() => {
-  //   registerCameraStart(startCapture)
-  //  }, [])
+  // --- Cleanup on Unmount or Match End ---
+  useEffect(() => {
+    const handleMatchEnd = () => {
+      console.log("⏰ Match ended - stopping camera capture")
+      stopCapture()
+    }
 
-   //use match end to stop camera
-   useEffect(() => {
-     onMatchEnd(() => {
-        console.log("⏰ Match ended - stopping camera capture")
-       stopCapture()
-     })
-   }, [onMatchEnd])
+    onMatchEnd(handleMatchEnd)
 
-  // Existing startCapture function
-  async function startCapture(){
-    try{
-      console.log('startCapture called!')
-      setStatus('Permission Needed')
-      
-      console.log('Requesting camera permission...')
-      const stream = await navigator.mediaDevices.getUserMedia({video: true})
-      console.log('Camera stream received:', stream)
+    return () => {
+      stopCapture() // cleanup on unmount
+    }
+  }, [onMatchEnd])
 
-      setStatus('Camera On')
-      setIsActive(true)
+  // --- Start Camera + WebSocket ---
+  async function startCapture() {
+    try {
+      console.log("🎥 Starting capture...")
+      setStatus("Permission Needed")
 
-      startTimer() // Start match timer when camera starts
+      // Request camera
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, min: 24 },
+          facingMode: "user",
+        },
+      })
 
-      if (videoRef.current){
-        console.log('Setting video srcObject...')
+      streamRef.current = stream
+      if (videoRef.current) {
         videoRef.current.srcObject = stream
-        console.log('Video srcObject set to:', videoRef.current.srcObject)
-        
-        // Wait for the video to be ready before playing
-        console.log('Waiting for video to be ready...')
-        await new Promise((resolve) => {
-          videoRef.current!.onloadedmetadata = () => {
-            console.log('Video metadata loaded, starting playback...')
-            videoRef.current!.play().then(() => {
-              console.log('Video started playing!')
-              resolve(true)
-            })
-          }
-        })
-      } else {
-        console.log('ERROR: videoRef.current is null!')
+        await videoRef.current.play()
       }
 
-      setStatus('Camera On')
+      setStatus("Camera On")
       setIsActive(true)
+      startTimer()
 
-      // NEW: Connect to backend WebSocket
-      wsRef.current = new WebSocket('ws://localhost:8000/ws')
+      // --- Connect to backend WebSocket ---
+      const ws = new WebSocket("ws://localhost:8000/ws")
+      wsRef.current = ws
 
-      // When WebSocket connection opens
-      wsRef.current.onopen = () => {
+      ws.onopen = () => {
+        console.log("✅ WebSocket connected")
         setIsConnected(true)
-        // Start sending frames every 100ms (10 times per second)
+
+        // Start frame capture loop (every 100ms)
         intervalRef.current = setInterval(captureFrame, 100)
       }
 
-       // When we receive a message from backend
-       wsRef.current.onmessage = (event) => {
-         const data = JSON.parse(event.data)
-         if (data.type === 'punch') {
-           const now = Date.now()
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
 
-           //update live punch stats
+        if (data.type === "punch") {
+          const now = Date.now()
+          if (data.confidence > 0.5 && now - lastDetectionTime.current > MIN_DETECTION_INTERVAL) {
+            console.log(`🥊 ${data.punchType.toUpperCase()} (${Math.round(data.confidence * 100)}%)`)
+            lastDetectionTime.current = now
             addPunch(data.punchType)
-           
-           // Debug: Show ALL detections to see what's happening
-           console.log(`🥊 ${data.punchType.toUpperCase()} detected! (${Math.round(data.confidence * 100)}% confidence)`)
-           
-           // Lower the confidence threshold to 0.5 (50%) to see more detections
-           if (data.confidence > 0.5) {
-             // Debounce: only show if enough time has passed since last detection
-             if (now - lastDetectionTime.current > MIN_DETECTION_INTERVAL) {
-               console.log(`🥊 ${data.punchType.toUpperCase()} detected! (${Math.round(data.confidence * 100)}% confidence)`)
-               lastDetectionTime.current = now
-               // TODO: Update punch counters
-             } else {
-               console.log(`🔄 ${data.punchType} detected but too soon (${Math.round(data.confidence * 100)}%) - debouncing`)
-             }
-           } else {
-             console.log(`⚠️ Low confidence ${data.punchType} (${Math.round(data.confidence * 100)}%) - ignoring`)
-           }
-         } else if (data.type === 'no_punch') {
-           // Show when no punch is detected (less spam)
-           // console.log('No punch detected')
-         }
-       }
+          }
+        }
+      }
 
-      // When WebSocket connection closes
-      wsRef.current.onclose = () => {
+      ws.onclose = () => {
+        console.log("❌ WebSocket closed")
         setIsConnected(false)
       }
 
-    }
-    catch(error){
-      setStatus('Camera Off')
-      console.log("Camera Permission Denied")
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err)
+      }
+    } catch (error) {
+      console.error("Camera error:", error)
+      setStatus("Camera Off")
     }
   }
 
-  // Existing stopCapture function
-  async function stopCapture(){
-    if (videoRef.current){
-      const stream = videoRef.current.srcObject as MediaStream
-      stream?.getTracks().forEach(track=> track.stop())
+  // --- Stop Camera + Cleanup ---
+  function stopCapture() {
+    console.log("🛑 Stopping capture...")
+
+    // Stop video stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+    }
+
+    if (videoRef.current) {
       videoRef.current.srcObject = null
     }
-    
-    setStatus('Camera Off')
+
+    // Stop timer
+    stopTimer()
+    setStatus("Camera Off")
     setIsActive(false)
 
-    stopTimer() // Stop match timer when camera stops
-
-    // NEW: Stop sending frames and close WebSocket
+    // Stop frame loop
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
     }
 
+    // Close WebSocket
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
     }
+
+    // Reset connection flag
+    setIsConnected(false)
   }
 
-  // NEW: Function to capture a frame from video and send to backend
+  // --- Capture Frame + Send to Backend ---
   function captureFrame() {
-    // Check if we have video, canvas, and WebSocket connection
-    if (videoRef.current && canvasRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
-      const canvas = canvasRef.current
-      const video = videoRef.current
-      
-      // Set canvas size to match video size
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      
-      // Draw the current video frame onto the canvas (like taking a screenshot)
-      const ctx = canvas.getContext('2d')
-      ctx?.drawImage(video, 0, 0)
-      
-      // Convert the canvas drawing to a JPEG file
-      canvas.toBlob((blob) => {
-        if (blob && wsRef.current?.readyState === WebSocket.OPEN) {
-          // Convert the JPEG file to base64 (a text format we can send over network)
-          const reader = new FileReader()
-          reader.onload = () => {
-            const base64 = reader.result as string
-            // Send the frame to the backend
-            wsRef.current?.send(JSON.stringify({
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    const ws = wsRef.current
+
+    if (!video || !canvas || ws?.readyState !== WebSocket.OPEN) return
+
+    const ctx = canvas.getContext("2d")
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    ctx?.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    canvas.toBlob((blob) => {
+      if (blob && ws.readyState === WebSocket.OPEN) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          ws.send(
+            JSON.stringify({
               type: "frame",
-              image: base64,
-              timestamp: Date.now()
-            }))
-          }
-          reader.readAsDataURL(blob)
+              image: reader.result,
+              timestamp: Date.now(),
+            })
+          )
         }
-      }, 'image/jpeg', 0.7)
-    }
+        reader.readAsDataURL(blob)
+      }
+    }, "image/jpeg", 0.7)
   }
 
+  // --- JSX ---
   return (
-    <Card className="p-6 bg-card border-border h-full flex flex-col
-    w-full
-    bg-[#111417]
-    border-2 border-brawlr-red 
-    rounded-xl
-    gap-6 
-    transition-all duration-300
-    hover:shadow-[0_0_35px_rgba(0,255,255,.5)]
-    hover:scale-[1.02]
-    ">
-      {/* header row */}
+    <Card
+      className="
+      p-6 
+      bg-[#111417]
+      border-2 border-brawlr-red 
+      rounded-xl
+      w-full
+      h-full
+      flex flex-col
+      gap-6
+      transition-all duration-300
+      hover:shadow-[0_0_35px_rgba(0,255,255,.5)]
+      hover:scale-[1.02]
+    "
+    >
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold text-foreground">Live Camera Feed</h3>
-   
-
-      {/* Start and Stop Button for Top Right */}
-      
+        <h3 className="text-2xl font-semibold text-foreground">Live Camera Feed</h3>
         <Button
           onClick={isActive ? stopCapture : startCapture}
           className={`
-      !bg-brawlr-red 
-      !text-white 
-      hover:scale-110 
-      transition-all duration-300 
-      rounded-xl
-      ${isActive ? '!bg-destructive hover:bg-destructive/90' : '!bg-brawlr-red'}
-    `}
+            !bg-brawlr-red 
+            !text-white 
+            hover:scale-110 
+            transition-all duration-300 
+            rounded-xl
+            ${isActive ? '!bg-destructive hover:bg-destructive/90' : '!bg-brawlr-red'}
+          `}
           size="lg"
         >
           {isActive ? "Stop Training" : "Start Training"}
         </Button>
       </div>
 
-      {/* Show connection status */}
-      <div className="mb-4">
+      {/* Status */}
+      <div className="mb-2">
         <p className="text-sm text-muted-foreground">
-          Camera: {status} | Backend: {isConnected ? 'Connected' : 'Disconnected'}
+          Camera: {status} | Backend: {isConnected ? "Connected" : "Disconnected"}
         </p>
       </div>
 
+      {/* Video feed */}
       <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-6 relative overflow-hidden flex-1">
-        {/* Always render video element, but hide it when not active */}
         <video
           ref={videoRef}
-          className={`w-full h-full object-cover rounded-lg ${isActive ? 'block' : 'hidden'}`}
+          className={`w-full h-full object-cover rounded-lg ${isActive ? "block" : "hidden"}`}
           playsInline
           muted
           autoPlay
-          style={{ width: '100%', height: '100%' }}
         />
-        
-        {/* Show placeholder when camera is off */}
         {!isActive && (
           <div className="text-center absolute inset-0 flex flex-col items-center justify-center">
             <CameraOff className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
             <p className="text-xl text-muted-foreground font-medium">Ready to Start</p>
-            <p className="text-muted-foreground/70">Click the button below to begin recording the fight</p>
+            <p className="text-muted-foreground/70">Click Start Training to begin recording the fight</p>
           </div>
         )}
       </div>
 
-      {/* NEW: Hidden canvas for frame capture */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-
+      {/* Hidden canvas */}
+      <canvas ref={canvasRef} style={{ display: "none" }} />
     </Card>
   )
 }

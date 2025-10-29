@@ -224,21 +224,19 @@ class YOLOProcessor:
                         majority_punch = max(punch_frame_counts, key=punch_frame_counts.get)
                         majority_count = punch_frame_counts[majority_punch]
                         
-                        # Only count if majority has enough frames (adjusted for frame skip)
-                        if majority_count >= min_majority_frames:
+                        # Only count if majority has at least 6 frames
+                        if majority_count >= 6:
                             punch_counts[majority_punch] += 1
                             punch_counts["total"] += 1
                             print(f"Counted 1 {majority_punch} punch")
                         else:
-                            print(f"No punch type had {min_majority_frames}+ frames - ignoring cluster")
+                            print(f"No punch type had 6+ frames - ignoring cluster")
                     else:
                         print(f"Cluster too short ({len(current_cluster_punches)} frames) - ignoring")
                     
                     # Reset for next cluster
                     current_cluster_punches = []
                     in_cluster = False
-                
-                frame_count += 1
             
             print(f"Video processing complete. Punch counts: {punch_counts}")
             return punch_counts
@@ -246,21 +244,3 @@ class YOLOProcessor:
         except Exception as e:
             print(f"Error processing video: {e}")
             raise Exception(f"Video processing failed: {str(e)}")
-    
-    def process_video_fast(self, video_path, max_resolution=480):
-        """
-        Ultra-fast video processing with maximum frame skipping
-        
-        What this does:
-        - Processes every 5th frame for maximum speed
-        - Uses lower resolution for even faster processing
-        - Optimized for very long videos
-        
-        Args:
-            video_path: Path to video file
-            max_resolution: Maximum video resolution (default 480px for speed)
-        
-        Returns:
-            dict: Punch counts by type
-        """
-        return self.process_video(video_path, frame_skip=5, max_resolution=max_resolution)
