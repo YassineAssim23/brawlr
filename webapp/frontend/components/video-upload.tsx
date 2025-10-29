@@ -249,72 +249,85 @@ setResult({
           </div>
         )}
 
-     {/* Results */}
-       {result && (
-  <div className="text-xs text-gray-500 mb-2">
-    Debug: success = {result.success ? 'true' : 'false'}
-  </div>
-)}
-
-        {result && (
-          <div className="space-y-4">
-            {result.success ? (
-              <>
-                <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="font-medium">Analysis Complete!</span>
-                </div>
-
-                {result.punchCounts && (
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {result.punchCounts.straight}
-                      </div>
-                      <div className="text-sm text-gray-600">Straights</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {result.punchCounts.hook}
-                      </div>
-                      <div className="text-sm text-gray-600">Hooks</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {result.punchCounts.uppercut}
-                      </div>
-                      <div className="text-sm text-gray-600">Uppercuts</div>
-                    </div>
-                    <div className="col-span-2 text-center pt-2 border-t">
-                      <div className="text-3xl font-bold text-gray-800">
-                        {result.punchCounts.total}
-                      </div>
-                      <div className="text-sm text-gray-600">Total Punches</div>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex items-center gap-2 text-red-600">
-                <AlertCircle className="h-5 w-5" />
-                <span className="font-medium">Upload Failed</span>
-              </div>
-            )}
-
-             {result.error && (
-              <p className="text-sm text-red-600 bg-red-50 p-3 rounded">
-                {result.error}
-              </p>
-            )}
 
 
-            <Button onClick={resetUpload} className="w-full">
-              Upload Another Video
-            </Button>
+{result && (
+  <Card
+    className="
+      p-6 
+      bg-[#111417] 
+      border-2 
+      border-brawlr-red 
+      rounded-xl 
+      w-full 
+      max-w-md 
+      mx-auto 
+      mt-6
+      shadow-[0_0_25px_rgba(255,0,0,0.25)]
+      transition-all 
+      duration-300 
+      hover:shadow-[0_0_40px_rgba(255,0,0,0.4)]
+    "
+  >
+    <CardContent className="space-y-5 text-center">
+      {result.success ? (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-center gap-2 text-brawlr-red">
+            <CheckCircle className="h-6 w-6" />
+            <span className="text-xl font-semibold">Analysis Complete!</span>
           </div>
-        )}
-      </CardContent>
+
+          {/* Punch Breakdown */}
+          {result.punchCounts && (
+            <div className="grid grid-cols-2 gap-4 text-center mt-4">
+              {/* Straights */}
+              <div className="flex flex-col items-center justify-center bg-[#1a1d21] p-4 rounded-lg border border-gray-700">
+                <div className="text-3xl font-bold text-brawlr-red">
+                  {result.punchCounts.straight}
+                </div>
+                <div className="text-sm text-gray-300">Straights</div>
+              </div>
+
+              {/* Hooks */}
+              <div className="flex flex-col items-center justify-center bg-[#1a1d21] p-4 rounded-lg border border-gray-700">
+                <div className="text-3xl font-bold text-brawlr-red">
+                  {result.punchCounts.hook}
+                </div>
+                <div className="text-sm text-gray-300">Hooks</div>
+              </div>
+
+              {/* Uppercuts */}
+              <div className="col-span-2 flex flex-col items-center justify-center bg-[#1a1d21] p-4 rounded-lg border border-gray-700">
+                <div className="text-3xl font-bold text-purple-500">
+                  {result.punchCounts.uppercut}
+                </div>
+                <div className="text-sm text-gray-300">Uppercuts</div>
+              </div>
+
+              {/* Divider */}
+              <div className="col-span-2 border-t border-gray-700 my-2" />
+
+              {/* Total */}
+              <div className="col-span-2 flex flex-col items-center justify-center">
+                <div className="text-5xl font-extrabold text-white">
+                  {result.punchCounts.total}
+                </div>
+                <div className="text-sm text-gray-400">Total Punches</div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 text-red-500">
+          <AlertCircle className="h-6 w-6" />
+          <span className="text-lg font-semibold">Upload Failed</span>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+)}
+ </CardContent>
     </Card>
   )
 }
-
