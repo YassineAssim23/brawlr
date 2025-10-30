@@ -219,7 +219,7 @@ export function CameraFeed() {
       console.log(`📊 Prompting to save score: ${currentStats} punches`)
       setSaveModalOpen(true)
     } else {
-      window.alert("No punches recorded – nothing to save.")
+      window.alert("No punches recorded – nothing to save VIA BUTTON.")
     }
   }
 
@@ -230,9 +230,12 @@ export function CameraFeed() {
     const currentStats = stats.total
     cleanupCamera()
     
-    // Always show modal when timer ends (even if 0 punches - user completed a session)
-    console.log(`📊 Timer ended - prompting to save score: ${currentStats} punches`)
-    setSaveModalOpen(true)
+    if (currentStats > 0) {
+      console.log(`📊 Timer ended - prompting to save score: ${currentStats} punches`)
+      setSaveModalOpen(true)
+    } else {
+      window.alert("No punches recorded – nothing to save VIA TIMER.")
+    }
   }
 
   // Called when the modal's onSave is triggered (username + score)
