@@ -43,6 +43,23 @@ export function CameraFeed() {
    const lastDetectionTime = useRef<number>(0)
    const MIN_DETECTION_INTERVAL = 500 // 500ms between detections
 
+   // Audio ref for Mario coin sound
+   const coinSoundRef = useRef<HTMLAudioElement | null>(null)
+
+    // Initialize coin sound on mount
+  useEffect(() => {
+    coinSoundRef.current = new Audio('/sounds/coin.mp3')
+    coinSoundRef.current.volume = 0.5 // Set volume to 50%
+    
+    return () => {
+      // Cleanup audio on unmount
+      if (coinSoundRef.current) {
+        coinSoundRef.current.pause()
+        coinSoundRef.current = null
+      }
+    }
+  }, [])
+
     // --- Cleanup on Unmount or Match End ---
   useEffect(() => {
     const handleMatchEnd = () => {
@@ -157,6 +174,14 @@ export function CameraFeed() {
                lastDetectionTime.current = now
                 // Update punch stats via context - this increments stats.total and the specific punch type
                addPunch(data.punchType)
+               
+               // Play Mario coin sound when punch is detected
+               if (coinSoundRef.current) {
+                 coinSoundRef.current.currentTime = 0 // Reset to start
+                 coinSoundRef.current.play().catch(err => {
+                   console.log("Could not play coin sound:", err)
+                 })
+               }
               } else {
                 console.log(`🔄 ${data.punchType} detected but too soon (${Math.round(data.confidence * 100)}%) - debouncing`)
               }
